@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django
+*.log
+db.sqlite3
+media/
+staticfiles/
+
+# Virtualenv
+venv/
+ENV/
+.env/
+.venv/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# PyCharm
+.idea/
+
+# Test/coverage
+htmlcov/
+.coverage
+.tox/
+.nox/
+
+# Migrations (optional, keep if you want to reset migrations often)
+# **/migrations/*.pyc
+# **/migrations/*.pyo
+# **/migrations/*.pyd
+# **/migrations/__pycache__/ 

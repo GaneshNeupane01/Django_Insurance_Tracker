@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  backend:
+    build: .
+    container_name: django_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - DEBUG=0
