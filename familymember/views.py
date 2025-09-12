@@ -21,4 +21,14 @@ class FamilyMemberView(APIView):
         print(serializer.data)
         return Response(serializer.data)
 
+    def post(self, request):
+        muser= User.objects.get(username=request.data.get('username'))
+        memberUser = UserDetail.objects.get(user=muser)
+        user = UserDetail.objects.get(user=request.user)
+        family = FamilyMember.objects.filter(user=user).first().family
+        family_member = FamilyMember.objects.create(user=memberUser, family=family,role='member')
+        #serializer = FamilyMemberSerializer(family_member)
+        return Response({'message': 'Family member added successfully'})
+
+
 

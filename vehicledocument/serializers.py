@@ -4,4 +4,4 @@ from .models import VehicleDocument
 class VehicleDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = VehicleDocument
-        fields = ["document_id", "file_path", "doc_type", "uploaded_at", "image"]
+        fields = ["document_id", "vehicle", "doc_type", "uploaded_at", "image"]

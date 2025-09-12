@@ -4,16 +4,11 @@ from .models import Vehicle
 from vehicledocument.serializers import VehicleDocumentSerializer
 
 
-
-
-
 from insurance.serializers import InsuranceSerializer
 
 
 from rest_framework import serializers
 from reminder.models import Reminder
-
-
 
 
 from users.serializers import UserDetailSerializer
@@ -32,12 +27,12 @@ class FamilyMemberSerializer(serializers.ModelSerializer):
 
 
 class ReminderSerializer(serializers.ModelSerializer):
-    insurance_set = InsuranceSerializer(many=True, read_only=True)
+    #insurance_set = InsuranceSerializer(many=True, read_only=True)
     vehicle = serializers.StringRelatedField()
     family_member = serializers.StringRelatedField()
     class Meta:
         model = Reminder
-        fields = ["reminder_id", "target_type", "reminder_date", "snoozed_until", "is_active", "insurance_set", "vehicle", "family_member"]
+        fields = ["reminder_id", "target_type", "reminder_date", "snoozed_until", "is_active", "vehicle", "family_member"]
 
 
 class VehicleSerializer(serializers.ModelSerializer):
@@ -47,6 +42,8 @@ class VehicleSerializer(serializers.ModelSerializer):
     family_member = FamilyMemberSerializer(read_only=True)
     documents = VehicleDocumentSerializer(source="vehicledocument_set", many=True, read_only=True)
     reminders = ReminderSerializer(source="reminder_set", many=True, read_only=True)
+    insurances = InsuranceSerializer(source="insurance_set.first",read_only=True)
+   
 
     class Meta:
         model = Vehicle
