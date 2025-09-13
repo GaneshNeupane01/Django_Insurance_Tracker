@@ -72,8 +72,13 @@ class VehicleListView(APIView):
             image=data.get('image')
         )
 
-
-        #reminders creation later
+        is_active = timezone.now() < expiry_date
+        print(timezone.now())
+        print(expiry_date)
+        print(is_active)
+        Reminder.objects.create(vehicle=vehicle,family_member = family_member,insurance=insurance,target_type='insurance',
+        reminder_date = timezone.now(),snoozed_until = None,is_active = is_active
+        )
 
         return Response({"message": "Vehicle and related data saved"}, status=status.HTTP_201_CREATED)
 

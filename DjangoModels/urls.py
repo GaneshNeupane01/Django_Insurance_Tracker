@@ -24,7 +24,7 @@ urlpatterns = [
     path('families/', include('families.urls')),
     #path('insurance/', include('insurance.urls')),
     path('vehicles/', include('vehicles.urls')),
-    #path('reminder/', include('reminder.urls')),
+    path('reminder/', include('reminder.urls')),
     #path('vehicledocument/', include('vehicledocument.urls')),
     path('familymember/', include('familymember.urls')),
     #path('api-auth/', include('rest_framework.urls')),

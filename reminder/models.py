@@ -1,7 +1,8 @@
 from django.db import models
 from vehicles.models import Vehicle
 from familymember.models import FamilyMember
-
+from insurance.models import Insurance
+from django.utils import timezone
 
 
 class Reminder(models.Model):
@@ -14,13 +15,13 @@ class Reminder(models.Model):
 
     reminder_id = models.AutoField(primary_key=True)
     vehicle = models.ForeignKey(Vehicle,on_delete=models.CASCADE)
-    #insurance = models.ForeignKey(Insurance, on_delete=models.CASCADE, null=True, blank=True)
+    insurance = models.ForeignKey(Insurance, on_delete=models.CASCADE, null=True, blank=True)
     family_member = models.ForeignKey(FamilyMember,on_delete=models.CASCADE)
     target_type = models.CharField(max_length=30,default="insurance")
     reminder_date = models.DateTimeField(auto_now_add=True)
-    snoozed_until = models.DateTimeField(auto_now_add=False)
+    snoozed_until = models.DateTimeField(auto_now_add=False,null=True,blank=True)
     is_active = models.BooleanField(default=False)
-    is_expired = models.BooleanField(default=False)
+    #is_expired = models.BooleanField(default=False)
     #choices field for frequency of reminder_date like weekly,daily,monthly
     frequency = models.CharField(max_length=30,default="weekly",choices=FrequencyChoices)
 
@@ -30,4 +31,10 @@ class Reminder(models.Model):
     def __str__(self):
         return f"Reminder for {self.vehicle.plate_number} by {self.family_member.user.user.username}"
 
+
+    @property
+    def is_expired(self):
+        if self.insurance and self.insurance.expiry_date:
+            return timezone.now() >= self.insurance.expiry_date
+        return False
 
