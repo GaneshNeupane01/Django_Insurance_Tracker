@@ -82,6 +82,15 @@ class VehicleListView(APIView):
                     doc_type=validated.get('vehicle_document_type'),
                     image=validated.get('image')
                 )
+                Reminder.objects.create(
+                     vehicle=vehicle,
+                     family_member=family_member,
+                     insurance=insurance,
+                     target_type="insurance",
+                     reminder_date=timezone.now(),
+                     snoozed_until=None,
+                     s_active=True
+                )
 
                 return Response({"message": "Vehicle and related data saved"}, status=status.HTTP_201_CREATED)
         except Exception as e:
