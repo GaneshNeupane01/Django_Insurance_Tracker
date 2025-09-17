@@ -11,6 +11,7 @@ class Vehicle(models.Model):
     engine_cc = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
     name = models.CharField(max_length=100,blank=True,null=True)
+    vehicle_image = models.ImageField(upload_to='vehicle_images/',blank=True,null=True)
 
     def __str__(self):
         return self.plate_number

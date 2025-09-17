@@ -12,4 +12,4 @@ class UserDetailSerializer(serializers.ModelSerializer):
     user = UserSerializer()
     class Meta:
         model = UserDetail
-        fields = ["id","user"]
+        fields = ["id","user","profile","profile_url"]

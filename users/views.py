@@ -14,7 +14,7 @@ class FacebookLoginView(APIView):
         access_token = request.data.get("access_token")
 
         # Verify token with Facebook
-        fb_url = f"https://graph.facebook.com/me?fields=id,name,email&access_token={access_token}"
+        fb_url = f"https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token={access_token}"
         fb_response = requests.get(fb_url).json()
 
         if "error" in fb_response:
@@ -25,11 +25,18 @@ class FacebookLoginView(APIView):
         name = fb_response.get("name", "")
         #email = fb_response.get("email")
         print(name,email)
+        #picture_url = fb_response["picture"]["data"]["url"]
+        profile_url = f"https://graph.facebook.com/{fb_id}/picture?type=large"
+
+
 
         # Check if user exists, else create
-        user, _ = User.objects.get_or_create(username=fb_id, defaults={"email": email, "first_name": name})
-        UserDetail.objects.get_or_create(user=user)
-
+        user, created = User.objects.get_or_create(username=fb_id, defaults={"email": email, "first_name": name})
+        user_detail, _ = UserDetail.objects.get_or_create(user=user)
+        if created or not user_detail.profile_url:
+            user_detail.profile_url = profile_url
+            user_detail.save()
+        print(profile_url)
         # Generate JWT
         refresh = RefreshToken.for_user(user)
         print(refresh,name,refresh.access_token)

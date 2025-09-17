@@ -16,6 +16,8 @@ from rest_framework.parsers import MultiPartParser, FormParser
 
 # Create your views here.
 from datetime import datetime
+from django.db import transaction
+from .serializers import AddVehicleSerializer
 
 
 
@@ -42,43 +44,45 @@ class VehicleListView(APIView):
 
 
     def post(self, request):
-        data = request.data
-        print(data)
         print("called api")
-        family_member = FamilyMember.objects.get(family_member_id=data.get('family_member_id'))
+        serializer = AddVehicleSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        expiry_date_str = data.get("insurance_renewal_date")
-        expiry_date = datetime.strptime(expiry_date_str, "%m/%d/%Y")
-        expiry_date = timezone.make_aware(expiry_date)
+        validated = serializer.validated_data
 
-        vehicle = Vehicle.objects.create(
-            name=data.get('name'),
-            plate_number=data.get('plate_number'),
-            engine_cc=data.get('engine_cc'),
-            family_member=family_member
-        )
+        try:
 
-        insurance = Insurance.objects.create(
-            vehicle=vehicle,
-            insurance_company=data.get('insurance_company'),
-            expiry_date=expiry_date,
-            payment_mode=data.get('payment_mode'),
-            amount=data.get('premium_amount')
-        )
+                family_member = FamilyMember.objects.get(
+                    family_member_id=validated.get('family_member_id')
+                )
 
-        document = VehicleDocument.objects.create(
-            vehicle=vehicle,
-            doc_type=data.get('vehicle_document_type'),
-            image=data.get('image')
-        )
+                expiry_date_str = validated.get('insurance_renewal_date')
+                expiry_date = datetime.strptime(expiry_date_str, "%m/%d/%Y")
+                expiry_date = timezone.make_aware(expiry_date)
 
-        is_active = timezone.now() < expiry_date
-        print(timezone.now())
-        print(expiry_date)
-        print(is_active)
-        Reminder.objects.create(vehicle=vehicle,family_member = family_member,insurance=insurance,target_type='insurance',
-        reminder_date = timezone.now(),snoozed_until = None,is_active = is_active
-        )
+                vehicle = Vehicle.objects.create(
+                    name=validated.get('name'),
+                    plate_number=validated.get('plate_number'),
+                    engine_cc=validated.get('engine_cc'),
+                    family_member=family_member,
+                    vehicle_image=validated.get('vehicle_image')
+                )
 
-        return Response({"message": "Vehicle and related data saved"}, status=status.HTTP_201_CREATED)
+                Insurance.objects.create(
+                    vehicle=vehicle,
+                    insurance_company=validated.get('insurance_company'),
+                    expiry_date=expiry_date,
+                    payment_mode=validated.get('payment_mode'),
+                    amount=validated.get('premium_amount')
+                )
 
+                VehicleDocument.objects.create(
+                    vehicle=vehicle,
+                    doc_type=validated.get('vehicle_document_type'),
+                    image=validated.get('image')
+                )
+
+                return Response({"message": "Vehicle and related data saved"}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

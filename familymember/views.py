@@ -22,13 +22,25 @@ class FamilyMemberView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
-        muser= User.objects.get(username=request.data.get('username'))
+        username = request.data.get('username')
+        if not username:
+            return Response({'message': 'Username is required','flag':'error'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+        try:
+            muser= User.objects.get(username=request.data.get('username'))
+
+        except:
+            return Response({'message': 'User not found','flag':'error'})
         memberUser = UserDetail.objects.get(user=muser)
         user = UserDetail.objects.get(user=request.user)
         family = FamilyMember.objects.filter(user=user).first().family
+        if FamilyMember.objects.filter(user=memberUser, family=family).exists():
+            return Response({'message': 'User is already a family member'}, status=status.HTTP_409_CONFLICT)
+
         family_member = FamilyMember.objects.create(user=memberUser, family=family,role='member')
         #serializer = FamilyMemberSerializer(family_member)
-        return Response({'message': 'Family member added successfully'})
+        return Response({'message': 'Family member added successfully','flag':'success'})
 
 
 
