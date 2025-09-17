@@ -89,7 +89,7 @@ class VehicleListView(APIView):
                      target_type="insurance",
                      reminder_date=timezone.now(),
                      snoozed_until=None,
-                     s_active=True
+                     is_active=True
                 )
 
                 return Response({"message": "Vehicle and related data saved"}, status=status.HTTP_201_CREATED)
