@@ -69,7 +69,7 @@ class VehicleListView(APIView):
                     vehicle_image=validated.get('vehicle_image')
                 )
 
-                Insurance.objects.create(
+                insurance = Insurance.objects.create(
                     vehicle=vehicle,
                     insurance_company=validated.get('insurance_company'),
                     expiry_date=expiry_date,
