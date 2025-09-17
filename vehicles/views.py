@@ -95,3 +95,64 @@ class VehicleListView(APIView):
                 return Response({"message": "Vehicle and related data saved"}, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+class EditVehicleView(APIView):
+    def post(self, request, *args, **kwargs):
+        serializer = AddVehicleSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        validated = serializer.validated_data
+
+        try:
+            vehicle_id = validated.get("vehicle_id")
+            vehicle = Vehicle.objects.get(vehicle_id=vehicle_id)
+
+
+            family_member = FamilyMember.objects.get(
+                family_member_id=validated.get("family_member_id")
+            )
+
+            # Convert expiry date
+            expiry_date_str = validated.get("insurance_renewal_date")
+            expiry_date = datetime.strptime(expiry_date_str, "%m/%d/%Y")
+            expiry_date = timezone.make_aware(expiry_date)
+
+            # --- Update Vehicle fields ---
+            vehicle.name = validated.get("name")
+            vehicle.plate_number = validated.get("plate_number")
+            vehicle.engine_cc = validated.get("engine_cc")
+            vehicle.family_member = family_member
+
+            if validated.get("vehicle_image"):  # only update if new image provided
+                vehicle.vehicle_image = validated.get("vehicle_image")
+
+            vehicle.save()
+
+            # --- Update Insurance fields ---
+            insurance = Insurance.objects.get(vehicle=vehicle)
+            insurance.insurance_company = validated.get("insurance_company")
+            insurance.expiry_date = expiry_date
+            insurance.payment_mode = validated.get("payment_mode")
+            insurance.amount = validated.get("premium_amount")
+            insurance.save()
+
+            return Response(
+                {"message": "Vehicle and related data updated successfully"},
+                status=status.HTTP_200_OK,
+            )
+
+        except Vehicle.DoesNotExist:
+            return Response(
+                {"detail": "Vehicle not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

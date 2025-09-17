@@ -44,6 +44,7 @@ class VehicleSerializer(serializers.ModelSerializer):
 
 
 class AddVehicleSerializer(serializers.Serializer):
+    vehicle_id = serializers.IntegerField(required=False)
     family_member_id = serializers.IntegerField()
     name = serializers.CharField(max_length=20)
     plate_number = serializers.CharField(max_length=30)
@@ -52,7 +53,7 @@ class AddVehicleSerializer(serializers.Serializer):
     insurance_renewal_date = serializers.CharField()
     payment_mode = serializers.CharField(max_length=20)
     premium_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
-    vehicle_document_type = serializers.CharField(max_length=20)
+    vehicle_document_type = serializers.CharField(max_length=20,required=False)
     image = serializers.ImageField(required=False)
     vehicle_image = serializers.ImageField(required=False)
 
