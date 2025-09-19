@@ -30,6 +30,17 @@ DEBUG = True
 ALLOWED_HOSTS = ["*"]
 
 
+# settings.py
+
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),  # Short lifespan for security
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),   # Long lifespan for user convenience
+    "ROTATE_REFRESH_TOKENS": True,                 # Recommended for enhanced security
+}
+
+
 # Application definition
 
 INSTALLED_APPS = [
