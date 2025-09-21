@@ -17,4 +17,5 @@ class FamilyMember(models.Model):
         verbose_name_plural = "FamilyMember"
 
     def __str__(self):
-        return self.user.user.first_name
+        #return first_name plus last name
+        return self.user.user.first_name + ' ' + self.user.user.last_name
