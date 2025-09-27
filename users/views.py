@@ -9,6 +9,55 @@ from rest_framework.permissions import AllowAny
 from users.models import UserDetail
 from .serializers import ProfileSerializer
 
+
+
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+
+GOOGLE_CLIENT_ID = "211644975621-ohulp5rj1oc326guejk6fc00tcn0tg29.apps.googleusercontent.com"
+
+class GoogleLoginView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        print("api called for google")
+        token = request.data.get("id_token")
+        try:
+            # Verify Google ID token
+            idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), GOOGLE_CLIENT_ID)
+
+            google_id = idinfo["sub"]
+            email = idinfo.get("email", f"{google_id}@google.com")
+            name = idinfo.get("name", "")
+            first_name = idinfo.get("given_name", "")
+            last_name = idinfo.get("family_name", "")
+            picture_url = idinfo.get("picture", "")
+
+            # Create or get user
+            user, created = User.objects.get_or_create(username=google_id, defaults={"email": email, "first_name": first_name, "last_name": last_name})
+            user_detail, _ = UserDetail.objects.get_or_create(user=user)
+
+            if created or not user_detail.profile_url:
+                user_detail.profile_url = picture_url
+                user_detail.save()
+
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                "refresh": str(refresh),
+                "access": str(refresh.access_token),
+                "user": {"id": user.id, "name": user.first_name, "email": user.email, "profile_url": user_detail.profile_url}
+            })
+
+        except ValueError:
+            return Response({"error": "Invalid Google token"}, status=400)
+
+
+
+
+
+
+
+
 class FacebookLoginView(APIView):
     permission_classes = [AllowAny]  # <-- Important!
     def post(self, request):
@@ -57,3 +106,7 @@ class ProfileView(APIView):
         serializer = ProfileSerializer(user_detail)
         print(serializer.data)
         return Response(serializer.data)
+
+
+
+

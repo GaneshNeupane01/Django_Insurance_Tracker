@@ -36,6 +36,7 @@ class VehicleSerializer(serializers.ModelSerializer):
     insurances = InsuranceSerializer(source="insurance_set.first",read_only=True)
 
 
+
     class Meta:
         model = Vehicle
         fields = "__all__"
