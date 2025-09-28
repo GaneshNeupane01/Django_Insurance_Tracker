@@ -1,6 +1,7 @@
 version: '3'
 
 services:
+
   backend:
     build: .
     container_name: django_backend
@@ -9,4 +10,8 @@ services:
     volumes:
       - .:/app
     environment:
-      - DEBUG=0
+      - DEBUG=0 and FROM python:3.11-slim
+
+
+
+
