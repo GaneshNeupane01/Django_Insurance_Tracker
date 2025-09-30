@@ -26,6 +26,7 @@ class VehicleListView(APIView):
     print('api called successfully')
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
+    ALLOWED_DOC_TYPES = ['insurance', 'license', 'registration']
 
     def get(self, request):
 
@@ -44,7 +45,6 @@ class VehicleListView(APIView):
 
 
     def post(self, request):
-        print("called api")
         serializer = AddVehicleSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -52,51 +52,66 @@ class VehicleListView(APIView):
         validated = serializer.validated_data
 
         try:
+            family_member = FamilyMember.objects.get(
+                family_member_id=validated.get('family_member_id')
+            )
 
-                family_member = FamilyMember.objects.get(
-                    family_member_id=validated.get('family_member_id')
+            expiry_date_str = validated.get('insurance_renewal_date')
+            expiry_date = datetime.strptime(expiry_date_str, "%m/%d/%Y")
+            expiry_date = timezone.make_aware(expiry_date)
+
+            vehicle = Vehicle.objects.create(
+                name=validated.get('name'),
+                plate_number=validated.get('plate_number'),
+                engine_cc=validated.get('engine_cc'),
+                family_member=family_member,
+                vehicle_image=validated.get('vehicle_image')
+            )
+
+            insurance = Insurance.objects.create(
+                vehicle=vehicle,
+                insurance_company=validated.get('insurance_company'),
+                expiry_date=expiry_date,
+                payment_mode=validated.get('payment_mode'),
+                amount=validated.get('premium_amount')
+            )
+
+            # Handle multiple documents here
+            documents = request.FILES.getlist('documents')
+            doc_types = request.data.getlist('doc_types')
+
+            if len(documents) != len(doc_types):
+                return Response(
+                    {"detail": "Mismatch between documents and document types count"},
+                    status=status.HTTP_400_BAD_REQUEST
                 )
+            for dt in doc_types:
+                if dt not in ALLOWED_DOC_TYPES:
+                    return Response({"doc_types": [f"Invalid doc_type '{dt}'. Allowed types are {list(ALLOWED_DOC_TYPES)}"]}, status=status.HTTP_400_BAD_REQUEST)
 
-                expiry_date_str = validated.get('insurance_renewal_date')
-                expiry_date = datetime.strptime(expiry_date_str, "%m/%d/%Y")
-                expiry_date = timezone.make_aware(expiry_date)
 
-                vehicle = Vehicle.objects.create(
-                    name=validated.get('name'),
-                    plate_number=validated.get('plate_number'),
-                    engine_cc=validated.get('engine_cc'),
-                    family_member=family_member,
-                    vehicle_image=validated.get('vehicle_image')
-                )
 
-                insurance = Insurance.objects.create(
-                    vehicle=vehicle,
-                    insurance_company=validated.get('insurance_company'),
-                    expiry_date=expiry_date,
-                    payment_mode=validated.get('payment_mode'),
-                    amount=validated.get('premium_amount')
-                )
-
+            for doc, doc_type in zip(documents, doc_types):
                 VehicleDocument.objects.create(
                     vehicle=vehicle,
-                    doc_type=validated.get('vehicle_document_type'),
-                    image=validated.get('image')
-                )
-                Reminder.objects.create(
-                     vehicle=vehicle,
-                     family_member=family_member,
-                     insurance=insurance,
-                     target_type="insurance",
-                     reminder_date=timezone.now(),
-                     snoozed_until=None,
-                     is_active=True
+                    doc_type=doc_type,
+                    image=doc
                 )
 
-                return Response({"message": "Vehicle and related data saved"}, status=status.HTTP_201_CREATED)
+            Reminder.objects.create(
+                vehicle=vehicle,
+                family_member=family_member,
+                insurance=insurance,
+                target_type="insurance",
+                reminder_date=timezone.now(),
+                snoozed_until=None,
+                is_active=True
+            )
+
+            return Response({"message": "Vehicle and related data saved"}, status=status.HTTP_201_CREATED)
+
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 
 
 class EditVehicleView(APIView):

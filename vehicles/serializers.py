@@ -54,8 +54,8 @@ class AddVehicleSerializer(serializers.Serializer):
     insurance_renewal_date = serializers.CharField()
     payment_mode = serializers.CharField(max_length=20)
     premium_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
-    vehicle_document_type = serializers.CharField(max_length=20,required=False)
-    image = serializers.ImageField(required=False)
+   # vehicle_document_type = serializers.CharField(max_length=20,required=False)
+   # image = serializers.ImageField(required=False)
     vehicle_image = serializers.ImageField(required=False)
 
     def validate_engine_cc(self, value):
