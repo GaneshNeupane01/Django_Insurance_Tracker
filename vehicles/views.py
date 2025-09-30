@@ -26,7 +26,7 @@ class VehicleListView(APIView):
     print('api called successfully')
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
-    ALLOWED_DOC_TYPES = ['insurance', 'license', 'registration']
+    ALLOWED_DOC_TYPES = ['insurance', 'license', 'registration','other']
 
     def get(self, request):
 
@@ -85,9 +85,6 @@ class VehicleListView(APIView):
                     {"detail": "Mismatch between documents and document types count"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            for dt in doc_types:
-                if dt not in ALLOWED_DOC_TYPES:
-                    return Response({"doc_types": [f"Invalid doc_type '{dt}'. Allowed types are {list(ALLOWED_DOC_TYPES)}"]}, status=status.HTTP_400_BAD_REQUEST)
 
 
 
