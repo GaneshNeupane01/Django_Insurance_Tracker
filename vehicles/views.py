@@ -1,4 +1,3 @@
-
 from families.models import Family
 from rest_framework import status
 from rest_framework.views import APIView
@@ -13,20 +12,20 @@ from insurance.models import Insurance
 from vehicledocument.models import VehicleDocument
 from django.utils import timezone
 from rest_framework.parsers import MultiPartParser, FormParser
+from .ml.vehicle_predictor import predict_vehicle_type
 
 # Create your views here.
 from datetime import datetime
 from django.db import transaction
 from .serializers import AddVehicleSerializer
-
-
-
+from insurance.models import InsuranceCompany, InsurancePlan
 
 class VehicleListView(APIView):
     print('api called successfully')
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
     ALLOWED_DOC_TYPES = ['insurance', 'license', 'registration','other']
+
 
     def get(self, request):
 
@@ -60,6 +59,51 @@ class VehicleListView(APIView):
             expiry_date = datetime.strptime(expiry_date_str, "%m/%d/%Y")
             expiry_date = timezone.make_aware(expiry_date)
 
+            #here we can call the func to predict type by passing validated image as argument
+            uploaded_img = validated.get('vehicle_image')
+            predicted_label, confidence = predict_vehicle_type(uploaded_img)
+
+            if predicted_label:
+                print(f" Predicted Vehicle Type: {predicted_label} ({confidence*100:.2f}% confidence)")
+            else:
+                predicted_label = "Unknown"
+            company = InsuranceCompany.objects.get(id=validated.get('company_id'))
+            print(company)
+            print(validated.get('payment_mode'))
+            print(predicted_label)
+            print('code reached here')
+            # Normalize labels to match InsurancePlan choices/values
+            label_mapping = {
+                "car": "Car",
+                "motorcycle": "Motorcycle",
+                "bike": "Motorcycle",
+                "truck": "Truck",
+                "bus": "Bus",
+            }
+            normalized_type = label_mapping.get(str(predicted_label).strip().lower(), "Unknown")
+            normalized_payment_mode = str(validated.get('payment_mode', '')).strip().lower()
+
+            try:
+                plan = InsurancePlan.objects.get(
+                    company=company,
+                    vehicle_type=normalized_type,
+                    payment_mode=normalized_payment_mode,
+                )
+            except InsurancePlan.DoesNotExist:
+                return Response(
+                    {
+                        "detail": "No matching insurance plan found",
+                        "company": company.id,
+                        "vehicle_type": normalized_type,
+                        "payment_mode": normalized_payment_mode,
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            print('code never reached here giving internel server error')
+            if plan:
+                print(plan)
+            else:
+                print("no plan")
             vehicle = Vehicle.objects.create(
                 name=validated.get('name'),
                 plate_number=validated.get('plate_number'),
@@ -70,10 +114,12 @@ class VehicleListView(APIView):
 
             insurance = Insurance.objects.create(
                 vehicle=vehicle,
-                insurance_company=validated.get('insurance_company'),
+                plan=plan,
+             #   insurance_company=validated.get('insurance_company'),
+
                 expiry_date=expiry_date,
-                payment_mode=validated.get('payment_mode'),
-                amount=validated.get('premium_amount')
+            #    payment_mode=validated.get('payment_mode'),
+            #    amount=validated.get('premium_amount')
             )
 
             # Handle multiple documents here
@@ -110,14 +156,14 @@ class VehicleListView(APIView):
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
+#we can make a function to predict type here ??
 class EditVehicleView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = AddVehicleSerializer(data=request.data)
-
+        print('test1')
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+        print('test2')
         validated = serializer.validated_data
 
         try:
@@ -135,22 +181,42 @@ class EditVehicleView(APIView):
             expiry_date = timezone.make_aware(expiry_date)
 
             # --- Update Vehicle fields ---
-            vehicle.name = validated.get("name")
+           # vehicle.name = validated.get("name")
             vehicle.plate_number = validated.get("plate_number")
             vehicle.engine_cc = validated.get("engine_cc")
             vehicle.family_member = family_member
 
+            insurance = Insurance.objects.get(vehicle=vehicle)
+            vehicle_type = insurance.plan.vehicle_type
+            print(vehicle_type)
+
             if validated.get("vehicle_image"):  # only update if new image provided
                 vehicle.vehicle_image = validated.get("vehicle_image")
 
+                uploaded_img = validated.get('vehicle_image')
+                predicted_label, confidence = predict_vehicle_type(uploaded_img)
+
+                if predicted_label:
+                    print(f" Predicted Vehicle Type: {predicted_label} ({confidence*100:.2f}% confidence)")
+                    vehicle_type = predicted_label
+                else:
+                    predicted_label = "Unknown"
+
             vehicle.save()
 
+
             # --- Update Insurance fields ---
-            insurance = Insurance.objects.get(vehicle=vehicle)
-            insurance.insurance_company = validated.get("insurance_company")
+
+            company = InsuranceCompany.objects.get(id=validated.get("company_id"))
+            print('this is ',company)
+
+
             insurance.expiry_date = expiry_date
-            insurance.payment_mode = validated.get("payment_mode")
-            insurance.amount = validated.get("premium_amount")
+            print(validated.get("payment_mode"))
+            plan = InsurancePlan.objects.get( company=company, vehicle_type=vehicle_type, payment_mode=validated.get("payment_mode"))
+            insurance.plan = plan
+            print(plan)
+           # insurance.amount = validated.get("premium_amount")
             insurance.save()
 
             return Response(
