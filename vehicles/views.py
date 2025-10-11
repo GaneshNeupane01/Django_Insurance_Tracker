@@ -73,29 +73,20 @@ class VehicleListView(APIView):
             print(predicted_label)
             print('code reached here')
             # Normalize labels to match InsurancePlan choices/values
-            label_mapping = {
-                "car": "Car",
-                "motorcycle": "Motorcycle",
-                "bike": "Motorcycle",
-                "truck": "Truck",
-                "bus": "Bus",
-            }
-            normalized_type = label_mapping.get(str(predicted_label).strip().lower(), "Unknown")
+
             normalized_payment_mode = str(validated.get('payment_mode', '')).strip().lower()
 
             try:
                 plan = InsurancePlan.objects.get(
                     company=company,
-                    vehicle_type=normalized_type,
+                    vehicle_type=predicted_label,
                     payment_mode=normalized_payment_mode,
                 )
             except InsurancePlan.DoesNotExist:
+                print("no plan")
                 return Response(
                     {
-                        "detail": "No matching insurance plan found",
-                        "company": company.id,
-                        "vehicle_type": normalized_type,
-                        "payment_mode": normalized_payment_mode,
+                        "planErrorDetail": "No matching insurance plan found! please upload correct vehicle image or company.",
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
