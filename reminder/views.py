@@ -4,11 +4,13 @@ from django.shortcuts import render
 
 import requests
 from rest_framework.views import APIView
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import Reminder
 from .serializers import ReminderSerializer
 from familymember.models import FamilyMember
 from users.models import UserDetail
+from django.utils import timezone
 
 class RemindersView(APIView):
 
@@ -28,3 +30,21 @@ class RemindersView(APIView):
         print(serializer.data)
 
         return Response(serializer.data)
+
+
+@api_view(['POST'])
+def ReminderTrigger(request):
+        reminders_id = request.data.get('reminders_id')
+        print(reminders_id)
+        reminder = Reminder.objects.get(reminder_id=reminders_id)
+
+        if reminder.is_active:
+            reminder.is_active = False
+            reminder.snoozed_until = timezone.now() + timezone.timedelta(days=7)
+        else:
+            reminder.is_active = True
+            reminder.snoozed_until = None
+
+        reminder.save()
+        return Response({'message':'reminder changed.'})
+
