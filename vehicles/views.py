@@ -17,7 +17,7 @@ from .ml.vehicle_predictor import predict_vehicle_type
 # Create your views here.
 from datetime import datetime
 from django.db import transaction
-from .serializers import AddVehicleSerializer
+from .serializers import AddVehicleSerializer, EditVehicleSerializer
 from insurance.models import InsuranceCompany, InsurancePlan
 
 class VehicleListView(APIView):
@@ -150,7 +150,7 @@ class VehicleListView(APIView):
 #we can make a function to predict type here ??
 class EditVehicleView(APIView):
     def post(self, request, *args, **kwargs):
-        serializer = AddVehicleSerializer(data=request.data)
+        serializer = EditVehicleSerializer(data=request.data)
         print('test1')
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
