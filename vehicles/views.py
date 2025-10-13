@@ -56,8 +56,9 @@ class VehicleListView(APIView):
             )
 
             expiry_date_str = validated.get('insurance_renewal_date')
-            expiry_date = datetime.strptime(expiry_date_str, "%m/%d/%Y")
-            expiry_date = timezone.make_aware(expiry_date)
+           # expiry_date = datetime.strptime(expiry_date_str, "%m/%d/%Y")
+           #expiry_date = timezone.make_aware(expiry_date)
+            expiry_date = datetime.fromisoformat(expiry_date_str.replace("Z", "+00:00"))
 
             #here we can call the func to predict type by passing validated image as argument
             uploaded_img = validated.get('vehicle_image')
@@ -168,8 +169,9 @@ class EditVehicleView(APIView):
 
             # Convert expiry date
             expiry_date_str = validated.get("insurance_renewal_date")
-            expiry_date = datetime.strptime(expiry_date_str, "%m/%d/%Y")
-            expiry_date = timezone.make_aware(expiry_date)
+           # expiry_date = datetime.strptime(expiry_date_str, "%m/%d/%Y")
+           # expiry_date = timezone.make_aware(expiry_date)
+
 
             # --- Update Vehicle fields ---
            # vehicle.name = validated.get("name")
@@ -197,12 +199,17 @@ class EditVehicleView(APIView):
 
 
             # --- Update Insurance fields ---
+            if expiry_date_str is not None:
+                print(expiry_date_str)
+
+                expiry_date = datetime.fromisoformat(expiry_date_str.replace("Z", "+00:00"))
+                insurance.expiry_date = expiry_date
 
             company = InsuranceCompany.objects.get(id=validated.get("company_id"))
             print('this is ',company)
 
 
-            insurance.expiry_date = expiry_date
+
             print(validated.get("payment_mode"))
             plan = InsurancePlan.objects.get( company=company, vehicle_type=vehicle_type, payment_mode=validated.get("payment_mode"))
             insurance.plan = plan

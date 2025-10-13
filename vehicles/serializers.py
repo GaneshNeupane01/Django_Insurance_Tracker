@@ -11,9 +11,12 @@ from rest_framework import serializers
 
 
 
+
 from users.serializers import UserDetailSerializer
 from families.serializers import FamilySerializer
 from familymember.models import FamilyMember
+from datetime import datetime, timezone
+
 
 class FamilyMemberSerializer(serializers.ModelSerializer):
     user = UserDetailSerializer()
@@ -70,13 +73,11 @@ class AddVehicleSerializer(serializers.Serializer):
         return value
 
     def validate_insurance_renewal_date(self, value):
-        from django.utils import timezone
-        from datetime import datetime
-        try:
-            expiry_date = datetime.strptime(value, "%m/%d/%Y")
-        except ValueError:
-            raise serializers.ValidationError("Date must be MM/DD/YYYY.")
-        if expiry_date.date() < timezone.now().date():
+        # Parse the ISO string into a datetime object
+        expiry_date = datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+        # Validate that it’s not in the past
+        if expiry_date.date() < datetime.now(timezone.utc).date():
             raise serializers.ValidationError("Expiry date cannot be in the past.")
         return value
 
@@ -97,7 +98,7 @@ class EditVehicleSerializer(serializers.Serializer):
     plate_number = serializers.CharField(max_length=30)
     engine_cc = serializers.IntegerField()
    # insurance_company = serializers.CharField(max_length=30)
-    insurance_renewal_date = serializers.CharField()
+    insurance_renewal_date = serializers.CharField(required=False)
     payment_mode = serializers.CharField(max_length=20)
     premium_amount = serializers.DecimalField(max_digits=10, decimal_places=2,required=False)
    # vehicle_document_type = serializers.CharField(max_length=20,required=False)
@@ -115,15 +116,14 @@ class EditVehicleSerializer(serializers.Serializer):
         return value
 
     def validate_insurance_renewal_date(self, value):
-        from django.utils import timezone
-        from datetime import datetime
-        try:
-            expiry_date = datetime.strptime(value, "%m/%d/%Y")
-        except ValueError:
-            raise serializers.ValidationError("Date must be MM/DD/YYYY.")
-        if expiry_date.date() < timezone.now().date():
+        # Parse the ISO string into a datetime object
+        expiry_date = datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+        # Validate that it’s not in the past
+        if expiry_date.date() < datetime.now(timezone.utc).date():
             raise serializers.ValidationError("Expiry date cannot be in the past.")
         return value
+
 
     def validate_family_member_id(self, value):
         from familymember.models import FamilyMember

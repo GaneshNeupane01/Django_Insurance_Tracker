@@ -8,9 +8,11 @@ from django.utils import timezone
 class Reminder(models.Model):
 
     FrequencyChoices = [
-            ('daily', 'Daily'),
-            ('weekly', 'Weekly'),
-            ('monthly', 'Monthly'),
+            ('1d', 'Daily'),
+            ('3d', '3 Days'),
+            ('7d', 'Weekly'),
+            ('14d', '14 Days'),
+            ('30d', 'Monthly'),
         ]
 
     reminder_id = models.AutoField(primary_key=True)

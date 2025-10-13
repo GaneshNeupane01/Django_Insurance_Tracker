@@ -12,6 +12,7 @@ class ReminderSerializer(serializers.ModelSerializer):
     vehicle = serializers.StringRelatedField()
     family_member = serializers.StringRelatedField()
     is_expired = serializers.SerializerMethodField()
+    snoozed_until = serializers.DateTimeField(format=None, read_only=True)
 
     class Meta:
         model = Reminder

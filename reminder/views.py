@@ -11,6 +11,7 @@ from .serializers import ReminderSerializer
 from familymember.models import FamilyMember
 from users.models import UserDetail
 from django.utils import timezone
+from datetime import datetime
 
 class RemindersView(APIView):
 
@@ -40,11 +41,76 @@ def ReminderTrigger(request):
 
         if reminder.is_active:
             reminder.is_active = False
-            reminder.snoozed_until = timezone.now() + timezone.timedelta(days=7)
+            reminder.snoozed_until = timezone.now() + timezone.timedelta(days=1)
         else:
             reminder.is_active = True
             reminder.snoozed_until = None
 
         reminder.save()
         return Response({'message':'reminder changed.'})
+
+
+
+@api_view(['POST'])
+def SavenReminderConfig(request):
+    try:
+        reminder_id = request.data.get('reminder_id')
+        frequency = request.data.get('frequency')
+        isSnoozeEnabled = request.data.get('isSnoozeEnabled')
+
+        print("this is id ", reminder_id)
+        print("this is frequency ", frequency)
+
+        snooze_data = request.data.get('snooze')
+        snooze_duration = None
+        custom_snooze_date = None
+
+        if snooze_data:
+            print(snooze_data)
+            snooze_duration = snooze_data.get('duration')
+            print(snooze_duration)
+            custom_snooze_date = snooze_data.get('customDate')
+            print(custom_snooze_date)
+
+        reminder = Reminder.objects.get(reminder_id=reminder_id)
+        reminder.frequency = frequency
+
+        if isSnoozeEnabled:
+            reminder.is_active = False
+
+            if snooze_duration == 'custom' and custom_snooze_date:
+                # Adjust format depending on what frontend sends
+               # custom_snooze_date = datetime.fromisoformat(custom_snooze_date)
+                custom_snooze_date = datetime.fromisoformat(custom_snooze_date.replace("Z", "+00:00"))
+
+               # custom_snooze_date = timezone.make_aware(custom_snooze_date)
+                reminder.snoozed_until = custom_snooze_date
+            elif snooze_duration == '6h':
+                reminder.snoozed_until = timezone.now() + timezone.timedelta(hours=6)
+            elif snooze_duration == '1d':
+                reminder.snoozed_until = timezone.now() + timezone.timedelta(days=1)
+            elif snooze_duration == '2d':
+                reminder.snoozed_until = timezone.now() + timezone.timedelta(days=2)
+            elif snooze_duration == '3d':
+                reminder.snoozed_until = timezone.now() + timezone.timedelta(days=3)
+            elif snooze_duration == '7d':
+                reminder.snoozed_until = timezone.now() + timezone.timedelta(days=7)
+            else:
+                reminder.snoozed_until = timezone.now() + timezone.timedelta(days=7)
+        else:
+            reminder.is_active = True
+            reminder.snoozed_until = None
+
+        reminder.save()
+
+        return Response({
+            "message": "Reminder updated successfully",
+            "reminder_id": reminder_id,
+            "frequency": frequency,
+            "snoozed_until": reminder.snoozed_until
+        }, status=200)
+
+    except Reminder.DoesNotExist:
+        return Response({"error": "Reminder not found"}, status=404)
+
 
