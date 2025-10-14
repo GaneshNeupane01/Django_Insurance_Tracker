@@ -3,6 +3,15 @@ from vehicles.models import Vehicle
 from familymember.models import FamilyMember
 from insurance.models import Insurance
 from django.utils import timezone
+from datetime import datetime, timedelta
+from users.models import UserDetail
+
+
+
+class ExpoPushToken(models.Model):
+    user = models.OneToOneField(UserDetail, on_delete=models.CASCADE)
+    token = models.CharField(max_length=255)
+    updated_at = models.DateTimeField(auto_now=True)
 
 
 class Reminder(models.Model):
@@ -20,7 +29,7 @@ class Reminder(models.Model):
     insurance = models.ForeignKey(Insurance, on_delete=models.CASCADE, null=True, blank=True)
     family_member = models.ForeignKey(FamilyMember,on_delete=models.CASCADE)
     target_type = models.CharField(max_length=30,default="insurance")
-    reminder_date = models.DateTimeField(auto_now_add=True)
+    last_sent = models.DateTimeField(null=True, blank=True)
     snoozed_until = models.DateTimeField(auto_now_add=False,null=True,blank=True)
     is_active = models.BooleanField(default=False)
     #is_expired = models.BooleanField(default=False)
@@ -40,3 +49,25 @@ class Reminder(models.Model):
             return timezone.now() >= self.insurance.expiry_date
         return False
 
+    def should_notify(self):
+        now = datetime.now()
+        if self.snoozed_until and self.snoozed_until < now:
+            self.snoozed_until = None
+            self.is_active = True
+            self.save()
+            return True
+
+        if self.snoozed_until and self.snoozed_until > now:
+            return False  # user snoozed
+
+        if self.last_sent is None:
+            return True
+
+        if self.frequency == 'daily' and (now - self.last_sent) >= timedelta(days=1):
+            return True
+        if self.frequency == 'weekly' and (now - self.last_sent) >= timedelta(weeks=1):
+            return True
+        if self.frequency == 'monthly' and (now - self.last_sent) >= timedelta(days=30):
+            return True
+
+        return False

@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_crontab',
     'users',
     'families',
     'insurance',
@@ -60,6 +61,14 @@ INSTALLED_APPS = [
     'vehicledocument',
     'familymember'
 ]
+
+
+# in settings.py
+CRONJOBS = [
+    ('*/1 * * * *', 'reminder.cron.send_reminder_notifications'),  # every 1 mins
+]
+
+
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (

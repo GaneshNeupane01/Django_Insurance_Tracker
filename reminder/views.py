@@ -4,7 +4,7 @@ from django.shortcuts import render
 
 import requests
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view
+
 from rest_framework.response import Response
 from .models import Reminder
 from .serializers import ReminderSerializer
@@ -12,6 +12,9 @@ from familymember.models import FamilyMember
 from users.models import UserDetail
 from django.utils import timezone
 from datetime import datetime
+from .models import ExpoPushToken
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 
 class RemindersView(APIView):
 
@@ -114,3 +117,9 @@ def SavenReminderConfig(request):
         return Response({"error": "Reminder not found"}, status=404)
 
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def save_token(request):
+    token = request.data.get('token')
+    ExpoPushToken.objects.update_or_create(user=request.user, defaults={'token': token})
+    return Response({"message": "Token saved successfully"})

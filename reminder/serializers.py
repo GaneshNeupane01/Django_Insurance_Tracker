@@ -16,7 +16,7 @@ class ReminderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Reminder
-        fields = ["reminder_id", "target_type", "reminder_date", "snoozed_until", "is_active", "vehicle", "family_member", "insurance", "is_expired",'frequency']
+        fields = ["reminder_id", "target_type", "snoozed_until", "is_active", "vehicle", "family_member", "insurance", "is_expired",'frequency']
 
     def get_is_expired(self, obj):
         return obj.is_expired
