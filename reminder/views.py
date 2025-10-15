@@ -15,6 +15,7 @@ from datetime import datetime
 from .models import ExpoPushToken
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from .utils import send_push_notification
 
 class RemindersView(APIView):
 
@@ -121,5 +122,16 @@ def SavenReminderConfig(request):
 @permission_classes([IsAuthenticated])
 def save_token(request):
     token = request.data.get('token')
-    ExpoPushToken.objects.update_or_create(user=request.user, defaults={'token': token})
+    userDetail = UserDetail.objects.get(user=request.user)
+    ExpoPushToken.objects.update_or_create(user=userDetail, defaults={'token': token})
     return Response({"message": "Token saved successfully"})
+
+
+@api_view(['POST'])
+#test notification for request user
+def test_notification(request):
+    userDetail = UserDetail.objects.get(user=request.user)
+    token = ExpoPushToken.objects.filter(user=userDetail).first()
+    if token:
+        send_push_notification(token.token, "Test Notification", "This is a test notification")
+    return Response({"message": "Notification sent successfully"})

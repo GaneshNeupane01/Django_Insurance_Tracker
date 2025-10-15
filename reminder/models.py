@@ -34,7 +34,7 @@ class Reminder(models.Model):
     is_active = models.BooleanField(default=False)
     #is_expired = models.BooleanField(default=False)
     #choices field for frequency of reminder_date like weekly,daily,monthly
-    frequency = models.CharField(max_length=30,default="weekly",choices=FrequencyChoices)
+    frequency = models.CharField(max_length=30,default="7d",choices=FrequencyChoices)
 
     class Meta:       
         verbose_name_plural = "Reminder"

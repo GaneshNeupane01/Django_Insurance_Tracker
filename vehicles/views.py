@@ -12,13 +12,35 @@ from insurance.models import Insurance
 from vehicledocument.models import VehicleDocument
 from django.utils import timezone
 from rest_framework.parsers import MultiPartParser, FormParser
-from .ml.vehicle_predictor import predict_vehicle_type
+#from .ml.vehicle_predictor import predict_vehicle_type
 
 # Create your views here.
 from datetime import datetime
 from django.db import transaction
 from .serializers import AddVehicleSerializer, EditVehicleSerializer
 from insurance.models import InsuranceCompany, InsurancePlan
+
+
+
+
+import requests
+
+HUGGINGFACE_SPACE_URL = "https://botinfinity-vehiclepredictor.hf.space/predict"
+
+def send_image_to_huggingface(uploaded_file):
+    files = {
+        "file": (uploaded_file.name, uploaded_file.read(), uploaded_file.content_type)
+    }
+    try:
+        response = requests.post(HUGGINGFACE_SPACE_URL, files=files, timeout=20)
+        response.raise_for_status()
+        data = response.json()
+        return data.get("label"), data.get("confidence")
+    except requests.RequestException as e:
+        print("Prediction service error:", e)
+        return None, None
+
+
 
 class VehicleListView(APIView):
     print('api called successfully')
@@ -62,7 +84,11 @@ class VehicleListView(APIView):
 
             #here we can call the func to predict type by passing validated image as argument
             uploaded_img = validated.get('vehicle_image')
-            predicted_label, confidence = predict_vehicle_type(uploaded_img)
+            uploaded_img.seek(0)  # Reset file pointer before sending
+            print("working till here")
+
+            predicted_label, confidence = send_image_to_huggingface(uploaded_img)
+           # predicted_label, confidence = predict_vehicle_type(uploaded_img)
 
             if predicted_label:
                 print(f" Predicted Vehicle Type: {predicted_label} ({confidence*100:.2f}% confidence)")
@@ -72,7 +98,7 @@ class VehicleListView(APIView):
             print(company)
             print(validated.get('payment_mode'))
             print(predicted_label)
-            print('code reached here')
+            print('code reached here1')
             # Normalize labels to match InsurancePlan choices/values
 
             normalized_payment_mode = str(validated.get('payment_mode', '')).strip().lower()
@@ -97,13 +123,13 @@ class VehicleListView(APIView):
             else:
                 print("no plan")
             vehicle = Vehicle.objects.create(
-                name=validated.get('name'),
+              #  name=validated.get('name'),
                 plate_number=validated.get('plate_number'),
                 engine_cc=validated.get('engine_cc'),
                 family_member=family_member,
                 vehicle_image=validated.get('vehicle_image')
             )
-
+            print('code reached here2')
             insurance = Insurance.objects.create(
                 vehicle=vehicle,
                 plan=plan,
@@ -113,7 +139,8 @@ class VehicleListView(APIView):
             #    payment_mode=validated.get('payment_mode'),
             #    amount=validated.get('premium_amount')
             )
-
+            print(insurance)
+            print('code reached here3')
             # Handle multiple documents here
             documents = request.FILES.getlist('documents')
             doc_types = request.data.getlist('doc_types')
@@ -132,17 +159,18 @@ class VehicleListView(APIView):
                     doc_type=doc_type,
                     image=doc
                 )
-
+            print('code 4')
             Reminder.objects.create(
                 vehicle=vehicle,
                 family_member=family_member,
                 insurance=insurance,
                 target_type="insurance",
-                reminder_date=timezone.now(),
-                snoozed_until=None,
-                is_active=True
-            )
 
+                snoozed_until=None,
+                is_active=True,
+                last_sent=None
+            )
+            print("code5")
             return Response({"message": "Vehicle and related data saved"}, status=status.HTTP_201_CREATED)
 
         except Exception as e:
@@ -187,7 +215,12 @@ class EditVehicleView(APIView):
                 vehicle.vehicle_image = validated.get("vehicle_image")
 
                 uploaded_img = validated.get('vehicle_image')
-                predicted_label, confidence = predict_vehicle_type(uploaded_img)
+
+                uploaded_img.seek(0)  # Reset file pointer before sending
+
+
+                predicted_label, confidence = send_image_to_huggingface(uploaded_img)
+                #predicted_label, confidence = predict_vehicle_type(uploaded_img)
 
                 if predicted_label:
                     print(f" Predicted Vehicle Type: {predicted_label} ({confidence*100:.2f}% confidence)")
