@@ -50,7 +50,7 @@ class Reminder(models.Model):
         return False
 
     def should_notify(self):
-        now = datetime.now()
+        now = timezone.now()
         if self.snoozed_until and self.snoozed_until < now:
             self.snoozed_until = None
             self.is_active = True
@@ -58,16 +58,21 @@ class Reminder(models.Model):
             return True
 
         if self.snoozed_until and self.snoozed_until > now:
+            print('user snoozed greater')
             return False  # user snoozed
 
         if self.last_sent is None:
             return True
 
-        if self.frequency == 'daily' and (now - self.last_sent) >= timedelta(days=1):
+        if self.frequency == '1d' and (now - self.last_sent) >= timedelta(days=1):
             return True
-        if self.frequency == 'weekly' and (now - self.last_sent) >= timedelta(weeks=1):
+        if self.frequency == '3d' and (now - self.last_sent) >= timedelta(days=3):
             return True
-        if self.frequency == 'monthly' and (now - self.last_sent) >= timedelta(days=30):
+        if self.frequency == '7d' and (now - self.last_sent) >= timedelta(weeks=1):
+            return True
+        if self.frequency == '14d' and (now - self.last_sent) >= timedelta(weeks=2):
+            return True
+        if self.frequency == '30d' and (now - self.last_sent) >= timedelta(days=30):
             return True
 
         return False

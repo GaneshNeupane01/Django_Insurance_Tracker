@@ -191,10 +191,13 @@ class EditVehicleView(APIView):
             vehicle = Vehicle.objects.get(vehicle_id=vehicle_id)
 
 
+
             family_member = FamilyMember.objects.get(
                 family_member_id=validated.get("family_member_id")
             )
-
+            reminder = Reminder.objects.get(vehicle=vehicle)
+            reminder.family_member = family_member
+            reminder.save()
             # Convert expiry date
             expiry_date_str = validated.get("insurance_renewal_date")
            # expiry_date = datetime.strptime(expiry_date_str, "%m/%d/%Y")
