@@ -12,6 +12,7 @@ from insurance.models import Insurance
 from vehicledocument.models import VehicleDocument
 from django.utils import timezone
 from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.decorators import api_view
 #from .ml.vehicle_predictor import predict_vehicle_type
 
 # Create your views here.
@@ -191,7 +192,6 @@ class EditVehicleView(APIView):
             vehicle = Vehicle.objects.get(vehicle_id=vehicle_id)
 
 
-
             family_member = FamilyMember.objects.get(
                 family_member_id=validated.get("family_member_id")
             )
@@ -267,4 +267,14 @@ class EditVehicleView(APIView):
             return Response(
                 {"detail": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+
             )
+
+@api_view(['DELETE'])
+def delete_vehicle(request, pk):
+    try:
+        vehicle = Vehicle.objects.get(pk=pk)
+        vehicle.delete()
+        return Response({'message': 'Vehicle deleted successfully'}, status=status.HTTP_200_OK)
+    except Vehicle.DoesNotExist:
+        return Response({'message': 'Vehicle not found'}, status=status.HTTP_404_NOT_FOUND)

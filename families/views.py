@@ -21,6 +21,8 @@ class AddFamily(APIView):
         userDetail = UserDetail.objects.get(user=request.user)
         if family_action == "create":
             family_name = request.data.get("family_name")
+            if family_name == "" or family_name == None:
+                family_name = f"{userDetail.user.last_name} Family"
             family = Family.objects.create(name=family_name)
             FamilyMember.objects.create(user=userDetail, family=family, role="owner")
         else:

@@ -36,8 +36,10 @@ class GoogleLoginView(APIView):
             # Create or get user
             user, created = User.objects.get_or_create(username=google_id, defaults={"email": email, "first_name": first_name, "last_name": last_name})
             user_detail, _ = UserDetail.objects.get_or_create(user=user)
+            isFirstLogin = False
 
             if created or not user_detail.profile_url:
+                isFirstLogin = True
                 user_detail.profile_url = picture_url
                 user_detail.save()
 
@@ -45,7 +47,8 @@ class GoogleLoginView(APIView):
             return Response({
                 "refresh": str(refresh),
                 "access": str(refresh.access_token),
-                "user": {"id": user.id, "name": user.first_name, "email": user.email, "profile_url": user_detail.profile_url}
+                "user": {"id": user.id, "name": user.first_name, "email": user.email, "profile_url": user_detail.profile_url},
+                "isFirstLogin": isFirstLogin
             })
 
         except ValueError:
@@ -85,7 +88,9 @@ class FacebookLoginView(APIView):
         # Check if user exists, else create
         user, created = User.objects.get_or_create(username=fb_id, defaults={"email": email, "first_name": first_name, "last_name": last_name})
         user_detail, _ = UserDetail.objects.get_or_create(user=user)
+        isFirstLogin = False
         if created or not user_detail.profile_url:
+            isFirstLogin = True
             user_detail.profile_url = profile_url
             user_detail.save()
         print(profile_url)
@@ -95,7 +100,8 @@ class FacebookLoginView(APIView):
         return Response({
             "refresh": str(refresh),
             "access": str(refresh.access_token),
-            "user": {"id": user.id, "name": user.first_name, "email": user.email}
+            "user": {"id": user.id, "name": user.first_name, "email": user.email},
+            "isFirstLogin": isFirstLogin
         })
 
 

@@ -64,6 +64,9 @@ class Reminder(models.Model):
         if self.last_sent is None:
             return True
 
+        if (self.insurance.expiry_date - now) <= timedelta(days=1) and (now-self.last_sent) >= timedelta(hours=12):
+            return True
+
         if self.frequency == '1d' and (now - self.last_sent) >= timedelta(days=1):
             return True
         if self.frequency == '3d' and (now - self.last_sent) >= timedelta(days=3):
