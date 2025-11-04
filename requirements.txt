@@ -3,9 +3,11 @@ cachetools==5.5.2
 certifi==2025.8.3
 cffi==2.0.0
 charset-normalizer==3.4.3
+cloudinary==1.44.1
 cryptography==46.0.2
 dj-database-url==3.0.1
 Django==5.2.5
+django-cloudinary-storage==0.3.0
 django-crontab==0.7.1
 djangorestframework==3.16.1
 djangorestframework_simplejwt==5.5.1
@@ -30,6 +32,7 @@ requests==2.32.5
 rich==14.2.0
 rsa==4.9.1
 setuptools==80.9.0
+six==1.17.0
 sqlparse==0.5.3
 typing_extensions==4.15.0
 urllib3==2.5.0
