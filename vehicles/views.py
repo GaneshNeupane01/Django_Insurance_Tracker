@@ -14,6 +14,10 @@ from django.utils import timezone
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.decorators import api_view
 #from .ml.vehicle_predictor import predict_vehicle_type
+import traceback
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Create your views here.
 from datetime import datetime
@@ -118,17 +122,24 @@ class VehicleListView(APIView):
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            print('code never reached here giving internel server error')
+
             if plan:
                 print(plan)
             else:
                 print("no plan")
+            print('image info')
+            print(validated.get('vehicle_image'))
+            print(type(uploaded_img))
+            print('completed image info')
+            # Rewind file pointer after external read so storage upload has full stream
+
+            uploaded_img.seek(0)
             vehicle = Vehicle.objects.create(
               #  name=validated.get('name'),
                 plate_number=validated.get('plate_number'),
                 engine_cc=validated.get('engine_cc'),
                 family_member=family_member,
-                vehicle_image=validated.get('vehicle_image')
+                vehicle_image=uploaded_img
             )
             print('code reached here2')
             insurance = Insurance.objects.create(
@@ -174,9 +185,13 @@ class VehicleListView(APIView):
             print("code5")
             return Response({"message": "Vehicle and related data saved"}, status=status.HTTP_201_CREATED)
 
+        #except Exception as e:
+           # return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
+            print("🔥 Exception Traceback 🔥")
+            traceback.print_exc()     # Prints the full traceback in console
+            logger.error(traceback.format_exc())  # Logs it properly if logging configured
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 #we can make a function to predict type here ??
 class EditVehicleView(APIView):
     def post(self, request, *args, **kwargs):
@@ -230,6 +245,9 @@ class EditVehicleView(APIView):
                     vehicle_type = predicted_label
                 else:
                     predicted_label = "Unknown"
+
+                # Rewind again before saving to storage
+                uploaded_img.seek(0)
 
             vehicle.save()
 
