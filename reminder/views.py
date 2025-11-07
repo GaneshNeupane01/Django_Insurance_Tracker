@@ -88,6 +88,10 @@ def SavenReminderConfig(request):
                 # Adjust format depending on what frontend sends
                # custom_snooze_date = datetime.fromisoformat(custom_snooze_date)
                 custom_snooze_date = datetime.fromisoformat(custom_snooze_date.replace("Z", "+00:00"))
+                now = timezone.now()
+
+                # Combine the date from frontend with current time
+                custom_snooze_date = custom_snooze_date.replace(hour=now.hour, minute=now.minute, second=now.second, microsecond=now.microsecond)
 
                # custom_snooze_date = timezone.make_aware(custom_snooze_date)
                 reminder.snoozed_until = custom_snooze_date

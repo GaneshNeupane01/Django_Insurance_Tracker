@@ -2,6 +2,8 @@
 from rest_framework import serializers
 from .models import Insurance,InsuranceCompany,InsurancePlan
 
+from DjangoModels.utils.date_converter import ad_to_bs
+
 
 class InsuranceCompanySerializer(serializers.ModelSerializer):
     class Meta:
@@ -24,8 +26,14 @@ class InsuranceSerializer(serializers.ModelSerializer):
         format="%b %d, %Y",
         read_only=True
     )
+    expiry_date_bs = serializers.SerializerMethodField()
+
+
 
 
     class Meta:
         model = Insurance
         fields = "__all__"
+
+    def get_expiry_date_bs(self, obj):
+        return ad_to_bs(obj.expiry_date)

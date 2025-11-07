@@ -37,7 +37,7 @@ def send_image_to_huggingface(uploaded_file):
         "file": (uploaded_file.name, uploaded_file.read(), uploaded_file.content_type)
     }
     try:
-        response = requests.post(HUGGINGFACE_SPACE_URL, files=files, timeout=20)
+        response = requests.post(HUGGINGFACE_SPACE_URL, files=files, timeout=60)
         response.raise_for_status()
         data = response.json()
         return data.get("label"), data.get("confidence")

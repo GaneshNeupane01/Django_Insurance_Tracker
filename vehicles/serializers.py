@@ -56,6 +56,7 @@ class AddVehicleSerializer(serializers.Serializer):
     engine_cc = serializers.IntegerField()
    # insurance_company = serializers.CharField(max_length=30)
     insurance_renewal_date = serializers.CharField()
+   # insurance_renewal_date_bs = serializers.CharField(required=False)
     payment_mode = serializers.CharField(max_length=20)
     premium_amount = serializers.DecimalField(max_digits=10, decimal_places=2,required=False)
    # vehicle_document_type = serializers.CharField(max_length=20,required=False)
