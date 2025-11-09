@@ -8,7 +8,12 @@ from django.contrib.auth.models import User
 from rest_framework.permissions import AllowAny
 from users.models import UserDetail
 from .serializers import ProfileSerializer
-
+from rest_framework.decorators import api_view
+from familymember.models import FamilyMember
+from vehicles.models import Vehicle
+from vehicles.serializers import VehicleSerializer
+from reminder.models import Reminder
+from reminder.serializers import ReminderSerializer
 
 
 from google.oauth2 import id_token
@@ -109,10 +114,43 @@ class ProfileView(APIView):
     def get(self,request):
         user = request.user
         user_detail = UserDetail.objects.get(user=user)
-        serializer = ProfileSerializer(user_detail)
-        print(serializer.data)
-        return Response(serializer.data)
+        member = FamilyMember.objects.get(user=user_detail)
+
+        vehicles = Vehicle.objects.filter(family_member=member)
+
+        reminders = Reminder.objects.filter(family_member=member)
+
+        reminders = ReminderSerializer(reminders, many=True).data
+
+        vehicles = VehicleSerializer(vehicles, many=True).data
+        user_detail = ProfileSerializer(user_detail).data
+        print(reminders,vehicles,user_detail)
+
+        return Response({
+            "user_detail": user_detail,
+            "vehicles": vehicles,
+            "reminders": reminders
+        })
 
 
 
+@api_view(['GET'])
+def get_user(request):
+    user = request.user
+    user_detail = UserDetail.objects.get(user=user)
+    first_name = user.first_name
+    last_name = user.last_name
+    email = user.email
+    if user_detail.profile:
+        image = user_detail.profile
+    elif user_detail.profile_url:
+        image = user_detail.profile_url
+    else:
+        image = None
+    return Response({
+        "first_name": first_name,
+        "last_name": last_name,
+        "email": email,
+        "image": image
+    })
 

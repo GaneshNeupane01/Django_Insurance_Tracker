@@ -11,6 +11,8 @@ from reminder.models import Reminder
 from insurance.models import Insurance
 from vehicledocument.models import VehicleDocument
 from django.utils import timezone
+
+from datetime import datetime, timedelta
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.decorators import api_view
 #from .ml.vehicle_predictor import predict_vehicle_type
@@ -37,7 +39,7 @@ def send_image_to_huggingface(uploaded_file):
         "file": (uploaded_file.name, uploaded_file.read(), uploaded_file.content_type)
     }
     try:
-        response = requests.post(HUGGINGFACE_SPACE_URL, files=files, timeout=60)
+        response = requests.post(HUGGINGFACE_SPACE_URL, files=files, timeout=40)
         response.raise_for_status()
         data = response.json()
         return data.get("label"), data.get("confidence")
@@ -86,19 +88,27 @@ class VehicleListView(APIView):
            # expiry_date = datetime.strptime(expiry_date_str, "%m/%d/%Y")
            #expiry_date = timezone.make_aware(expiry_date)
             expiry_date = datetime.fromisoformat(expiry_date_str.replace("Z", "+00:00"))
-
+            print('trying')
             #here we can call the func to predict type by passing validated image as argument
             uploaded_img = validated.get('vehicle_image')
             uploaded_img.seek(0)  # Reset file pointer before sending
             print("working till here")
 
             predicted_label, confidence = send_image_to_huggingface(uploaded_img)
+
            # predicted_label, confidence = predict_vehicle_type(uploaded_img)
 
             if predicted_label:
                 print(f" Predicted Vehicle Type: {predicted_label} ({confidence*100:.2f}% confidence)")
             else:
+
                 predicted_label = "Unknown"
+                return Response(
+                    {
+                        "vehicleTypeError": "Please upload clear and valid vehicle image or try again.",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             company = InsuranceCompany.objects.get(id=validated.get('company_id'))
             print(company)
             print(validated.get('payment_mode'))
@@ -119,6 +129,7 @@ class VehicleListView(APIView):
                 return Response(
                     {
                         "planErrorDetail": "No matching insurance plan found! please upload correct vehicle image or company.",
+                        "vehicleTypeError":"Please make sure vehicle image is valid and clear.Also ensure all provided info are valid.",
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
@@ -172,14 +183,23 @@ class VehicleListView(APIView):
                     image=doc
                 )
             print('code 4')
+            now = timezone.now()
+
+
+            if (expiry_date - now) > timedelta(days=30):
+                is_active = False
+                snoozed_until = expiry_date - timedelta(days=30)
+            else:
+                is_active = True
+                snoozed_until = None
             Reminder.objects.create(
                 vehicle=vehicle,
                 family_member=family_member,
                 insurance=insurance,
                 target_type="insurance",
 
-                snoozed_until=None,
-                is_active=True,
+                snoozed_until=snoozed_until,
+                is_active=is_active,
                 last_sent=None
             )
             print("code5")

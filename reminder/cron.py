@@ -3,6 +3,7 @@ from .models import Reminder, ExpoPushToken
 from .utils import send_push_notification
 from datetime import datetime
 from django.utils import timezone
+from familymember.models import FamilyMember
 
 def send_reminder_notifications():
     print('called send_reminder_notification func')
@@ -20,16 +21,17 @@ def send_reminder_notifications():
             body = f"Insurance expires on {reminder.insurance.expiry_date}"
         if reminder.should_notify():
             print('should notify')
-
-            token_obj = ExpoPushToken.objects.filter(user=reminder.family_member.user).first()
-            print(token_obj.token)
-            if token_obj:
-                send_push_notification(
-                    token_obj.token,
-                    title,
-                    body
-                )
-                reminder.last_sent = now
-                reminder.save()
+            family = reminder.family_member.family
+            all_family_members = FamilyMember.objects.filter(family=family)
+            for family_member in all_family_members:
+                token_obj = ExpoPushToken.objects.filter(user=family_member.user).first()
+                if token_obj:
+                    send_push_notification(
+                        token_obj.token,
+                        title,
+                        body
+                    )
+            reminder.last_sent = now
+            reminder.save()
         else:
-            print('shoudlnt notify')
+            print('shouldnt notify')
