@@ -27,7 +27,7 @@ from django.db import transaction
 from .serializers import AddVehicleSerializer, EditVehicleSerializer
 from insurance.models import InsuranceCompany, InsurancePlan
 
-
+from cloudinary.uploader import destroy
 
 
 import requests
@@ -250,6 +250,13 @@ class EditVehicleView(APIView):
             print(vehicle_type)
 
             if validated.get("vehicle_image"):  # only update if new image provided
+                if vehicle.vehicle_image:
+                    try:
+                        destroy(vehicle.vehicle_image.public_id)
+                    except Exception as e:
+                        print(f"Error deleting old image from Cloudinary: {e}")
+
+
                 vehicle.vehicle_image = validated.get("vehicle_image")
 
                 uploaded_img = validated.get('vehicle_image')
@@ -312,7 +319,14 @@ class EditVehicleView(APIView):
 def delete_vehicle(request, pk):
     try:
         vehicle = Vehicle.objects.get(pk=pk)
+
+        # Delete image from Cloudinary if it exists
+        if vehicle.vehicle_image:
+            destroy(vehicle.vehicle_image.public_id)
+
         vehicle.delete()
+
         return Response({'message': 'Vehicle deleted successfully'}, status=status.HTTP_200_OK)
+
     except Vehicle.DoesNotExist:
         return Response({'message': 'Vehicle not found'}, status=status.HTTP_404_NOT_FOUND)
