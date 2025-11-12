@@ -21,5 +21,6 @@ EXPOSE 8000
 # Start both cron and Gunicorn
 CMD service cron start && \
     python manage.py migrate --noinput && \
+    python create_superuser.py && \
     python manage.py collectstatic --noinput && \
     gunicorn DjangoModels.wsgi:application --bind 0.0.0.0:8000
