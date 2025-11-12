@@ -31,7 +31,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='insuranceplan',
             name='vehicle_tier',
-            field=models.ForeignKey(default=django.utils.timezone.now, on_delete=django.db.models.deletion.CASCADE, related_name='plans', to='insurance.vehicletier'),
+            field=models.ForeignKey(default=10, on_delete=django.db.models.deletion.CASCADE, related_name='plans', to='insurance.vehicletier'),
             preserve_default=False,
         ),
         migrations.AlterUniqueTogether(
