@@ -124,7 +124,7 @@ def create_initial_companies_and_plans(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('insurance', '0011_populate_initial_plans'),
+        ('insurance', '0001_initial'),
     ]
 
     operations = [
