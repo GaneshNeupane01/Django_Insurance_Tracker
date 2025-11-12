@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Vehicle
+from .models import Vehicle,BluebookRenewal
 
 @admin.register(Vehicle)
 class VehiclesAdmin(admin.ModelAdmin):
@@ -10,7 +10,10 @@ class VehiclesAdmin(admin.ModelAdmin):
 
 
 
+@admin.register(BluebookRenewal)
+class BluebookRenewalAdmin(admin.ModelAdmin):
+    list_display = ('vehicle', 'renewal_date')
 
 
 
-# Register your models here.
+

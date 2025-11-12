@@ -5,10 +5,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .serializers import VehicleSerializer
 from familymember.models import FamilyMember
-from vehicles.models import Vehicle
+from vehicles.models import Vehicle,BluebookRenewal
 from users.models import UserDetail
 from reminder.models import Reminder
-from insurance.models import Insurance
+from insurance.models import Insurance,InsuranceCompany,InsurancePlan,VehicleTier
 from vehicledocument.models import VehicleDocument
 from django.utils import timezone
 
@@ -28,6 +28,7 @@ from .serializers import AddVehicleSerializer, EditVehicleSerializer
 from insurance.models import InsuranceCompany, InsurancePlan
 
 from cloudinary.uploader import destroy
+from django.db.models import Q
 
 
 import requests
@@ -73,8 +74,10 @@ class VehicleListView(APIView):
 
 
     def post(self, request):
+        print('called')
         serializer = AddVehicleSerializer(data=request.data)
         if not serializer.is_valid():
+            print(serializer.errors)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         validated = serializer.validated_data
@@ -85,8 +88,8 @@ class VehicleListView(APIView):
             )
 
             expiry_date_str = validated.get('insurance_renewal_date')
-           # expiry_date = datetime.strptime(expiry_date_str, "%m/%d/%Y")
-           #expiry_date = timezone.make_aware(expiry_date)
+            bluebook_renewal_date_str = validated.get('bluebook_renewal_date')
+            bluebook_renewal_date = datetime.fromisoformat(bluebook_renewal_date_str.replace("Z", "+00:00"))
             expiry_date = datetime.fromisoformat(expiry_date_str.replace("Z", "+00:00"))
             print('trying')
             #here we can call the func to predict type by passing validated image as argument
@@ -95,8 +98,6 @@ class VehicleListView(APIView):
             print("working till here")
 
             predicted_label, confidence = send_image_to_huggingface(uploaded_img)
-
-           # predicted_label, confidence = predict_vehicle_type(uploaded_img)
 
             if predicted_label:
                 print(f" Predicted Vehicle Type: {predicted_label} ({confidence*100:.2f}% confidence)")
@@ -114,15 +115,34 @@ class VehicleListView(APIView):
             print(validated.get('payment_mode'))
             print(predicted_label)
             print('code reached here1')
-            # Normalize labels to match InsurancePlan choices/values
 
-            normalized_payment_mode = str(validated.get('payment_mode', '')).strip().lower()
+            vehicle_category = validated.get("vehicle_category")
+            if 'EV' in vehicle_category and validated.get("engine_wattage"):
+                engine_wattage = validated.get("engine_wattage")
+                engine_cc = None
+            elif not 'EV' in vehicle_category and validated.get("engine_cc"):
+                engine_cc = validated.get("engine_cc")
+                engine_wattage = None
+            else:
+                return Response(
+                    {"engine_cc": ["Please provide engine wattage or engine cc"]},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            is_ev = 'EV' in vehicle_category
+            engine_value = engine_wattage if is_ev else engine_cc
+            premium_amount = validated.get('premium_amount')
+
+            if is_ev:
+                vehicle_tier = VehicleTier.objects.get(vehicle_type=vehicle_category,min_engine_wattage__lte=engine_value,max_engine_wattage__gte=engine_value)
+
+            else:
+                vehicle_tier = VehicleTier.objects.get(vehicle_type=vehicle_category,min_engine_cc__lte=engine_value,max_engine_cc__gte=engine_value)
 
             try:
                 plan = InsurancePlan.objects.get(
                     company=company,
-                    vehicle_type=predicted_label,
-                    payment_mode=normalized_payment_mode,
+                    vehicle_tier=vehicle_tier,
                 )
             except InsurancePlan.DoesNotExist:
                 print("no plan")
@@ -138,32 +158,28 @@ class VehicleListView(APIView):
                 print(plan)
             else:
                 print("no plan")
-            print('image info')
-            print(validated.get('vehicle_image'))
-            print(type(uploaded_img))
-            print('completed image info')
-            # Rewind file pointer after external read so storage upload has full stream
 
             uploaded_img.seek(0)
             vehicle = Vehicle.objects.create(
-              #  name=validated.get('name'),
                 plate_number=validated.get('plate_number'),
-                engine_cc=validated.get('engine_cc'),
+                engine_cc=engine_cc,
+                engine_wattage=engine_wattage,
                 family_member=family_member,
                 vehicle_image=uploaded_img
             )
-            print('code reached here2')
+            bluebook_renewal = BluebookRenewal.objects.create(
+                vehicle=vehicle,
+                renewal_date=bluebook_renewal_date
+            )
+            print(bluebook_renewal)
             insurance = Insurance.objects.create(
                 vehicle=vehicle,
                 plan=plan,
-             #   insurance_company=validated.get('insurance_company'),
-
                 expiry_date=expiry_date,
-            #    payment_mode=validated.get('payment_mode'),
-            #    amount=validated.get('premium_amount')
+                amount=premium_amount,
             )
             print(insurance)
-            print('code reached here3')
+
             # Handle multiple documents here
             documents = request.FILES.getlist('documents')
             doc_types = request.data.getlist('doc_types')
@@ -182,37 +198,53 @@ class VehicleListView(APIView):
                     doc_type=doc_type,
                     image=doc
                 )
-            print('code 4')
+            print('created documents')
             now = timezone.now()
 
-
+          #for insurance expiry creating reminder
             if (expiry_date - now) > timedelta(days=30):
                 is_active = False
                 snoozed_until = expiry_date - timedelta(days=30)
             else:
                 is_active = True
                 snoozed_until = None
+
             Reminder.objects.create(
                 vehicle=vehicle,
                 family_member=family_member,
-                insurance=insurance,
                 target_type="insurance",
-
                 snoozed_until=snoozed_until,
                 is_active=is_active,
                 last_sent=None
             )
-            print("code5")
+            print('created insurance renewal_date reminder')
+            #for bluebook renewal creating reminder
+            if (bluebook_renewal_date - now) > timedelta(days=30):
+                is_active = False
+                snoozed_until = bluebook_renewal_date - timedelta(days=30)
+            else:
+                is_active = True
+                snoozed_until = None
+
+            Reminder.objects.create(
+                vehicle=vehicle,
+                family_member=family_member,
+                target_type="bluebook",
+                snoozed_until=snoozed_until,
+                is_active=is_active,
+                last_sent=None
+                )
+
+
+
+            print("created bluebook_renewal reminder")
             return Response({"message": "Vehicle and related data saved"}, status=status.HTTP_201_CREATED)
 
-        #except Exception as e:
-           # return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
-            print("🔥 Exception Traceback 🔥")
             traceback.print_exc()     # Prints the full traceback in console
-            logger.error(traceback.format_exc())  # Logs it properly if logging configured
+            logger.error(traceback.format_exc())
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-#we can make a function to predict type here ??
+
 class EditVehicleView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = EditVehicleSerializer(data=request.data)
@@ -233,23 +265,37 @@ class EditVehicleView(APIView):
             reminder = Reminder.objects.get(vehicle=vehicle)
             reminder.family_member = family_member
             reminder.save()
-            # Convert expiry date
+
             expiry_date_str = validated.get("insurance_renewal_date")
            # expiry_date = datetime.strptime(expiry_date_str, "%m/%d/%Y")
            # expiry_date = timezone.make_aware(expiry_date)
 
 
-            # --- Update Vehicle fields ---
-           # vehicle.name = validated.get("name")
+            vehicle_category = validated.get("vehicle_category")
+            if 'EV' in vehicle_category and validated.get("engine_wattage"):
+                engine_wattage = validated.get("engine_wattage")
+                engine_cc = None
+            elif not 'EV' in vehicle_category and validated.get("engine_cc"):
+                engine_cc = validated.get("engine_cc")
+                engine_wattage = None
+            else:
+                return Response(
+                    {"engine_cc": ["Please provide engine wattage or engine cc"]},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            vehicle.engine_cc = engine_cc
+            vehicle.engine_wattage = engine_wattage
             vehicle.plate_number = validated.get("plate_number")
-            vehicle.engine_cc = validated.get("engine_cc")
+
+
+
             vehicle.family_member = family_member
 
             insurance = Insurance.objects.get(vehicle=vehicle)
-            vehicle_type = insurance.plan.vehicle_type
-            print(vehicle_type)
 
-            if validated.get("vehicle_image"):  # only update if new image provided
+
+
+            if validated.get("vehicle_image"):
                 if vehicle.vehicle_image:
                     try:
                         destroy(vehicle.vehicle_image.public_id)
@@ -269,7 +315,7 @@ class EditVehicleView(APIView):
 
                 if predicted_label:
                     print(f" Predicted Vehicle Type: {predicted_label} ({confidence*100:.2f}% confidence)")
-                    vehicle_type = predicted_label
+
                 else:
                     predicted_label = "Unknown"
 
@@ -289,9 +335,6 @@ class EditVehicleView(APIView):
             company = InsuranceCompany.objects.get(id=validated.get("company_id"))
             print('this is ',company)
 
-
-
-            print(validated.get("payment_mode"))
             plan = InsurancePlan.objects.get( company=company, vehicle_type=vehicle_type, payment_mode=validated.get("payment_mode"))
             insurance.plan = plan
             print(plan)
@@ -322,7 +365,7 @@ def delete_vehicle(request, pk):
 
         # Delete image from Cloudinary if it exists
         if vehicle.vehicle_image:
-            destroy(vehicle.vehicle_image.public_id)
+            vehicle.vehicle_image.delete(save=False)
 
         vehicle.delete()
 

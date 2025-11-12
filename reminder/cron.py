@@ -12,13 +12,24 @@ def send_reminder_notifications():
 
     now = timezone.now()
     for reminder in reminders:
-        title = f"Reminder : {reminder.insurance.plan.vehicle_type}-{reminder.vehicle.plate_number}"
+        title = f"Reminder : {reminder.vehicle.insurance_set.plan.vehicle_tier.vehicle_type}-{reminder.vehicle.plate_number}"
         if reminder.is_expired:
             print('expired')
-            body = f"Insurance Expired for {reminder.insurance.plan.vehicle_type}-{reminder.vehicle.plate_number}"
+            if reminder.target_type == 'insurance':
+                body = f"Insurance Expired for {reminder.vehicle.insurance_set.plan.vehicle_tier.vehicle_type}-{reminder.vehicle.plate_number}"
+            elif reminder.target_type == 'bluebook':
+                body = f'Bluebook Renewal Expired for {reminder.vehicle.plate_number}'
+            else:
+                return
         else:
             print('not expired')
-            body = f"Insurance expires on {reminder.insurance.expiry_date}"
+            if reminder.target_type == 'insurance':
+                body = f"Insurance expires on {reminder.vehicle.insurance_set.plan.vehicle_tier.vehicle_type}-{reminder.vehicle.plate_number} on {reminder.vehicle.insurance_set.expiry_date}"
+            elif reminder.target_type == 'bluebook':
+                body = f'Bluebook renewal on {reminder.vehicle.plate_number}'
+            else:
+                return
+
         if reminder.should_notify():
             print('should notify')
             family = reminder.family_member.family

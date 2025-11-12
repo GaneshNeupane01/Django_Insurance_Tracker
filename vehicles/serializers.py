@@ -1,10 +1,11 @@
 
 from rest_framework import serializers
-from .models import Vehicle
+from .models import Vehicle,BluebookRenewal
 from vehicledocument.serializers import VehicleDocumentSerializer
 
 
 from insurance.serializers import InsuranceSerializer
+from DjangoModels.utils.date_converter import ad_to_bs
 
 
 from rest_framework import serializers
@@ -29,6 +30,14 @@ class FamilyMemberSerializer(serializers.ModelSerializer):
 
 
 
+class BluebookRenewalSerializer(serializers.ModelSerializer):
+    renewal_date_bs = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BluebookRenewal
+        fields = ["renewal_date_bs"]
+    def get_renewal_date_bs(self, obj):
+        return ad_to_bs(obj.renewal_date)
 
 
 class VehicleSerializer(serializers.ModelSerializer):
@@ -37,14 +46,12 @@ class VehicleSerializer(serializers.ModelSerializer):
     documents = VehicleDocumentSerializer(source="vehicledocument_set", many=True, read_only=True)
    # reminders = ReminderSerializer(source="reminder_set", many=True, read_only=True)
     insurances = InsuranceSerializer(source="insurance_set.first",read_only=True)
-
+    bluebook_renewals = BluebookRenewalSerializer(source="bluebook_renewals.first",read_only=True)
 
 
     class Meta:
         model = Vehicle
         fields = "__all__"
-
-
 
 
 class AddVehicleSerializer(serializers.Serializer):
@@ -53,11 +60,14 @@ class AddVehicleSerializer(serializers.Serializer):
    # name = serializers.CharField(max_length=20)
     company_id = serializers.IntegerField()
     plate_number = serializers.CharField(max_length=30)
-    engine_cc = serializers.IntegerField()
+    engine_cc = serializers.IntegerField(required=False)
+    engine_wattage = serializers.IntegerField(required=False)
+    vehicle_category = serializers.CharField(max_length=40)
    # insurance_company = serializers.CharField(max_length=30)
     insurance_renewal_date = serializers.CharField()
+    bluebook_renewal_date = serializers.CharField(required=False)
    # insurance_renewal_date_bs = serializers.CharField(required=False)
-    payment_mode = serializers.CharField(max_length=20)
+    payment_mode = serializers.CharField(max_length=20,required=False)
     premium_amount = serializers.DecimalField(max_digits=10, decimal_places=2,required=False)
    # vehicle_document_type = serializers.CharField(max_length=20,required=False)
    # image = serializers.ImageField(required=False)
@@ -66,6 +76,11 @@ class AddVehicleSerializer(serializers.Serializer):
     def validate_engine_cc(self, value):
         if value <= 0:
             raise serializers.ValidationError("Engine CC must be positive.")
+        return value
+
+    def validate_engine_wattage(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Engine wattage must be positive.")
         return value
 
     def validate_premium_amount(self, value):
@@ -97,7 +112,9 @@ class EditVehicleSerializer(serializers.Serializer):
    # name = serializers.CharField(max_length=20)
     company_id = serializers.IntegerField()
     plate_number = serializers.CharField(max_length=30)
-    engine_cc = serializers.IntegerField()
+    engine_cc = serializers.IntegerField(required=False)
+    engine_wattage = serializers.IntegerField(required=False)
+    vehicle_category = serializers.CharField(max_length=40)
    # insurance_company = serializers.CharField(max_length=30)
     insurance_renewal_date = serializers.CharField(required=False)
     payment_mode = serializers.CharField(max_length=20)
@@ -109,6 +126,11 @@ class EditVehicleSerializer(serializers.Serializer):
     def validate_engine_cc(self, value):
         if value <= 0:
             raise serializers.ValidationError("Engine CC must be positive.")
+        return value
+
+    def validate_engine_wattage(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Engine wattage must be positive.")
         return value
 
     def validate_premium_amount(self, value):

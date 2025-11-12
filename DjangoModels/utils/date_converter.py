@@ -7,8 +7,13 @@ def ad_to_bs(ad_date: date) -> str:
 
     if isinstance(ad_date, datetime):
         ad_date = ad_date.date()
+
     bs = nd.date.from_datetime_date(ad_date)
-    return f"{bs.year}-{bs.month:02d}-{bs.day:02d}"
+
+
+    month_name = bs.strftime('%B')
+
+    return f"{bs.year} {month_name} {bs.day}"
 
 def bs_to_ad(bs_year: int, bs_month: int, bs_day: int) -> date:
     bs = nd.date(bs_year, bs_month, bs_day)

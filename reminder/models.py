@@ -26,7 +26,7 @@ class Reminder(models.Model):
 
     reminder_id = models.AutoField(primary_key=True)
     vehicle = models.ForeignKey(Vehicle,on_delete=models.CASCADE)
-    insurance = models.ForeignKey(Insurance, on_delete=models.CASCADE, null=True, blank=True)
+    #insurance = models.ForeignKey(Insurance, on_delete=models.CASCADE, null=True, blank=True)
     family_member = models.ForeignKey(FamilyMember,on_delete=models.CASCADE)
     target_type = models.CharField(max_length=30,default="insurance")
     last_sent = models.DateTimeField(null=True, blank=True)
@@ -45,11 +45,34 @@ class Reminder(models.Model):
 
     @property
     def is_expired(self):
-        if self.insurance and self.insurance.expiry_date:
-            return timezone.now() >= self.insurance.expiry_date
+        #expiry_date based on target_type
+        if self.target_type == 'insurance':
+            insurance = self.vehicle.insurance_set.order_by('-expiry_date').first()
+            expiry_date = insurance.expiry_date if insurance else None
+
+        elif self.target_type == 'bluebook':
+            bluebook = self.vehicle.bluebook_renewals.order_by('-renewal_date').first()
+            expiry_date = bluebook.renewal_date if bluebook else None
+
+        if expiry_date:
+            return timezone.now() >= expiry_date
         return False
 
+
     def should_notify(self):
+
+        if self.target_type == 'insurance':
+            insurance = self.vehicle.insurance_set.order_by('-expiry_date').first()
+            expiry_date = insurance.expiry_date if insurance else None
+        elif self.target_type == 'bluebook':
+            bluebook = self.vehicle.bluebook_renewals.order_by('-renewal_date').first()
+            expiry_date = bluebook.renewal_date if bluebook else None
+        else:
+            return False
+
+
+
+
         now = timezone.now()
         if self.snoozed_until and self.snoozed_until < now:
             self.snoozed_until = None
@@ -64,9 +87,9 @@ class Reminder(models.Model):
         if self.last_sent is None:
             return True
 
-        if (self.insurance.expiry_date - now) <= timedelta(days=1) and (now-self.last_sent) >= timedelta(hours=12):
-            return True
-
+        if expiry_date:
+            if (expiry_date - now.date()) <= timedelta(days=1) and (now - self.last_sent) >= timedelta(hours=12):
+                return True
         if self.frequency == '1d' and (now - self.last_sent) >= timedelta(days=1):
             return True
         if self.frequency == '3d' and (now - self.last_sent) >= timedelta(days=3):
