@@ -5,6 +5,23 @@ import django.utils.timezone
 from django.db import migrations, models
 
 
+
+
+
+def create_default_vehicletier(apps, schema_editor):
+    VehicleTier = apps.get_model('insurance', 'VehicleTier')
+    # Make sure the id matches what you're going to use as default
+    VehicleTier.objects.create(
+        id=1,
+        vehicle_type='Private Vehicle (5 seater-EV)',
+        min_engine_cc=None,
+        max_engine_cc=None,
+        min_engine_wattage=0,
+        max_engine_wattage=19999
+    )
+
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -28,10 +45,11 @@ class Migration(migrations.Migration):
                 'unique_together': {('vehicle_type', 'min_engine_cc', 'max_engine_cc', 'min_engine_wattage', 'max_engine_wattage')},
             },
         ),
+        migrations.RunPython(create_default_vehicletier),
         migrations.AddField(
             model_name='insuranceplan',
             name='vehicle_tier',
-            field=models.ForeignKey(default=10, on_delete=django.db.models.deletion.CASCADE, related_name='plans', to='insurance.vehicletier'),
+            field=models.ForeignKey(default=1, on_delete=django.db.models.deletion.CASCADE, related_name='plans', to='insurance.vehicletier'),
             preserve_default=False,
         ),
         migrations.AlterUniqueTogether(
