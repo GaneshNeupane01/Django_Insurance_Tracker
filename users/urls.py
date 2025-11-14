@@ -1,6 +1,6 @@
 
 from django.urls import path
-from users.views import ProfileView,get_user
+from users.views import ProfileView,get_user,edit_profile
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -14,6 +14,8 @@ urlpatterns = [
 
     path("api/facebook-login/", FacebookLoginView.as_view(), name="facebook_login"),
     path("api/profile/", ProfileView.as_view(), name="profile"),
+    path("api/edit_profile/", edit_profile, name="edit_profile"),
+
     path('api/get-user/', get_user, name='get_user'),
     path("api/google-login/", GoogleLoginView.as_view(), name="google_login"),
 ]

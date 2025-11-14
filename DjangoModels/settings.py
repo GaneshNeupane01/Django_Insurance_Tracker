@@ -104,9 +104,9 @@ CLOUDINARY_STORAGE = {
    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
     'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
-        #  'CLOUD_NAME': 'daxlrnkcb',
-        # 'API_KEY': '948349496971634',
-        #  'API_SECRET': 'yxKO2I4RQBD2jVppgVSxWzsjlsM',
+#          'CLOUD_NAME': 'daxlrnkcb',
+#         'API_KEY': '948349496971634',
+#          'API_SECRET': 'yxKO2I4RQBD2jVppgVSxWzsjlsM',
 
 
 }

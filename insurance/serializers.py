@@ -28,9 +28,9 @@ class InsurancePlanSerializer(serializers.ModelSerializer):
 
 class InsuranceSerializer(serializers.ModelSerializer):
     plan = InsurancePlanSerializer()
-    insurance_date = serializers.DateTimeField(format="%m/%d/%Y", read_only=True)
+    insurance_date = serializers.DateTimeField(format="%m %d, %Y", read_only=True)
     expiry_date = serializers.DateTimeField(
-        format="%b %d, %Y",
+
         read_only=True
     )
     expiry_date_bs = serializers.SerializerMethodField()

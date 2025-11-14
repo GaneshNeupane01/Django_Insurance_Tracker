@@ -14,6 +14,7 @@ from vehicles.models import Vehicle
 from vehicles.serializers import VehicleSerializer
 from reminder.models import Reminder
 from reminder.serializers import ReminderSerializer
+from .serializers import EditProfileSerializer
 
 
 from google.oauth2 import id_token
@@ -143,14 +144,38 @@ def get_user(request):
     email = user.email
     if user_detail.profile:
         image = user_detail.profile
-    elif user_detail.profile_url:
-        image = user_detail.profile_url
     else:
-        image = None
+        if user_detail.profile_url:
+            image = user_detail.profile_url
+        else:
+            image = None
+
+
     return Response({
         "first_name": first_name,
         "last_name": last_name,
         "email": email,
-        "image": image
+        "profile_image": image
     })
 
+@api_view(['POST'])
+def edit_profile(request):
+    user = request.user
+    user_detail = UserDetail.objects.get(user=user)
+    serializer = EditProfileSerializer(data=request.data)
+    if serializer.is_valid():
+        first_name = serializer.validated_data.get('first_name')
+        last_name = serializer.validated_data.get('last_name')
+        email = serializer.validated_data.get('email')
+        phone_number = serializer.validated_data.get('phone_number')
+        profile_image = serializer.validated_data.get('profile_image')
+        user.first_name = first_name
+        user.last_name = last_name
+        user.email = email
+        if phone_number:
+            user_detail.phone_number = phone_number
+        if profile_image:
+            user_detail.profile = profile_image
+        user.save()
+        user_detail.save()
+        return Response({'message': 'Profile updated successfully'})

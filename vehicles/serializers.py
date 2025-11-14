@@ -35,7 +35,7 @@ class BluebookRenewalSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = BluebookRenewal
-        fields = ["renewal_date_bs"]
+        fields = ["renewal_date_bs","renewal_date"]
     def get_renewal_date_bs(self, obj):
         return ad_to_bs(obj.renewal_date)
 
