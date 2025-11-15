@@ -94,50 +94,42 @@ class VehicleListView(APIView):
             print('trying')
             #here we can call the func to predict type by passing validated image as argument
             uploaded_img = validated.get('vehicle_image')
-            uploaded_img.seek(0)  # Reset file pointer before sending
-            print("working till here")
 
-            predicted_label, confidence = send_image_to_huggingface(uploaded_img)
-
-            if predicted_label:
-                print(f" Predicted Vehicle Type: {predicted_label} ({confidence*100:.2f}% confidence)")
-            else:
-
-                predicted_label = "Unknown"
-                return Response(
-                    {
-                        "vehicleTypeError": "Please upload clear and valid vehicle image or try again.",
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
             company = InsuranceCompany.objects.get(id=validated.get('company_id'))
             print(company)
-            print(validated.get('payment_mode'))
-            print(predicted_label)
-            print('code reached here1')
 
-            vehicle_category = validated.get("vehicle_category")
-            if 'EV' in vehicle_category and validated.get("engine_wattage"):
+
+            print('code reached here1')
+            is_ev = validated.get('is_ev')
+            is_ev = is_ev.lower() == "true" if is_ev else False
+            vehicle_type = validated.get("vehicle_type")
+            if is_ev and validated.get("engine_wattage"):
                 engine_wattage = validated.get("engine_wattage")
                 engine_cc = None
-            elif not 'EV' in vehicle_category and validated.get("engine_cc"):
+                if vehicle_type == "Car":
+                    vehicle_category = "Car (EV)"
+                elif vehicle_type == "Motorcycle":
+                    vehicle_category = "Motorcycle (EV)"
+                else:
+                    return JsonResponse({"error": "Unsupported vehicle_type."}, status=400)
+                vehicle_tier = VehicleTier.objects.get(vehicle_type=vehicle_category,min_engine_wattage__lte=engine_wattage,max_engine_wattage__gte=engine_wattage)
+            elif not is_ev and validated.get("engine_cc"):
                 engine_cc = validated.get("engine_cc")
                 engine_wattage = None
+                if vehicle_type == "Car":
+                    vehicle_category = "Car"
+                elif vehicle_type == "Motorcycle":
+                    vehicle_category = "Motorcycle"
+                else:
+                    return JsonResponse({"error": "Unsupported vehicle_type."}, status=400)
+                vehicle_tier = VehicleTier.objects.get(vehicle_type=vehicle_category,min_engine_cc__lte=engine_cc,max_engine_cc__gte=engine_cc)
             else:
                 return Response(
                     {"engine_cc": ["Please provide engine wattage or engine cc"]},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            is_ev = 'EV' in vehicle_category
-            engine_value = engine_wattage if is_ev else engine_cc
             premium_amount = validated.get('premium_amount')
-
-            if is_ev:
-                vehicle_tier = VehicleTier.objects.get(vehicle_type=vehicle_category,min_engine_wattage__lte=engine_value,max_engine_wattage__gte=engine_value)
-
-            else:
-                vehicle_tier = VehicleTier.objects.get(vehicle_type=vehicle_category,min_engine_cc__lte=engine_value,max_engine_cc__gte=engine_value)
 
             try:
                 plan = InsurancePlan.objects.get(
@@ -148,8 +140,8 @@ class VehicleListView(APIView):
                 print("no plan")
                 return Response(
                     {
-                        "planErrorDetail": "No matching insurance plan found! please upload correct vehicle image or company.",
-                        "vehicleTypeError":"Please make sure vehicle image is valid and clear.Also ensure all provided info are valid.",
+                        "planErrorDetail": "No matching insurance plan found!",
+                        "vehicleTypeError":"Please ensure all the fields are correct.",
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
@@ -183,22 +175,22 @@ class VehicleListView(APIView):
             # Handle multiple documents here
             documents = request.FILES.getlist('documents')
             doc_types = request.data.getlist('doc_types')
+            if documents and doc_types:
+                if len(documents) != len(doc_types):
+                    return Response(
+                        {"detail": "Mismatch between documents and document types count"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
 
-            if len(documents) != len(doc_types):
-                return Response(
-                    {"detail": "Mismatch between documents and document types count"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+                for doc, doc_type in zip(documents, doc_types):
+                    VehicleDocument.objects.create(
+                        vehicle=vehicle,
+                        doc_type=doc_type,
+                        image=doc
+                    )
 
+                print('created documents')
 
-
-            for doc, doc_type in zip(documents, doc_types):
-                VehicleDocument.objects.create(
-                    vehicle=vehicle,
-                    doc_type=doc_type,
-                    image=doc
-                )
-            print('created documents')
             now = timezone.now()
 
           #for insurance expiry creating reminder
@@ -258,89 +250,142 @@ class EditVehicleView(APIView):
             vehicle_id = validated.get("vehicle_id")
             vehicle = Vehicle.objects.get(vehicle_id=vehicle_id)
 
-
+            print('test2.1')
             family_member = FamilyMember.objects.get(
                 family_member_id=validated.get("family_member_id")
             )
-            reminder = Reminder.objects.get(vehicle=vehicle)
-            reminder.family_member = family_member
-            reminder.save()
+            print('test2.2')
+            for reminder in vehicle.reminder_set.all():
+                reminder.family_member = family_member
+                reminder.save()
 
-            expiry_date_str = validated.get("insurance_renewal_date")
-           # expiry_date = datetime.strptime(expiry_date_str, "%m/%d/%Y")
-           # expiry_date = timezone.make_aware(expiry_date)
+            print('test3')
+            expiry_date_str = validated.get('insurance_renewal_date')
+            bluebook_renewal_date_str = validated.get('bluebook_renewal_date')
+            bluebook_renewal_date = datetime.fromisoformat(bluebook_renewal_date_str.replace("Z", "+00:00"))
+            expiry_date = datetime.fromisoformat(expiry_date_str.replace("Z", "+00:00"))
+            print('test4')
 
+            is_ev = validated.get('is_ev')
+            is_ev = is_ev.lower() == "true" if is_ev else False
+            vehicle_type = validated.get("vehicle_type")
 
-            vehicle_category = validated.get("vehicle_category")
-            if 'EV' in vehicle_category and validated.get("engine_wattage"):
+            print('test5')
+            if is_ev and validated.get("engine_wattage"):
                 engine_wattage = validated.get("engine_wattage")
                 engine_cc = None
-            elif not 'EV' in vehicle_category and validated.get("engine_cc"):
+
+                vehicle.engine_wattage = engine_wattage
+                if vehicle_type == "Car":
+                    vehicle_type = "Car (EV)"
+                elif vehicle_type == "Motorcycle":
+                    vehicle_type = "Motorcycle (EV)"
+                elif vehicle_type == "Car (EV)":
+                    pass
+                elif vehicle_type == "Motorcycle (EV)":
+                    pass
+                else:
+                    return JsonResponse({"error": "Unsupported vehicle_type."}, status=400)
+
+                vehicle_tier = VehicleTier.objects.get(vehicle_type=vehicle_type,min_engine_wattage__lte=engine_wattage,max_engine_wattage__gte=engine_wattage)
+            elif not is_ev and validated.get("engine_cc"):
                 engine_cc = validated.get("engine_cc")
                 engine_wattage = None
+                vehicle.engine_cc = engine_cc
+                if vehicle_type == "Car (EV)":
+                    vehicle_type = "Car"
+                elif vehicle_type == "Motorcycle (EV)":
+                    vehicle_type = "Motorcycle"
+
+                elif vehicle_type == "Car":
+                    pass
+                elif vehicle_type == "Motorcycle":
+                    pass
+                else:
+                    return JsonResponse({"error": "Unsupported vehicle_type."}, status=400)
+
+                print(vehicle_type)
+                vehicle_tier = VehicleTier.objects.get(vehicle_type=vehicle_type,min_engine_cc__lte=engine_cc,max_engine_cc__gte=engine_cc)
             else:
                 return Response(
                     {"engine_cc": ["Please provide engine wattage or engine cc"]},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            vehicle.engine_cc = engine_cc
-            vehicle.engine_wattage = engine_wattage
+
+
             vehicle.plate_number = validated.get("plate_number")
 
-
+            print('test6')
 
             vehicle.family_member = family_member
 
             insurance = Insurance.objects.get(vehicle=vehicle)
 
-
+            print('test7')
 
             if validated.get("vehicle_image"):
                 if vehicle.vehicle_image:
                     try:
-                        destroy(vehicle.vehicle_image.public_id)
+                        vehicle.vehicle_image.delete(save=False)
                     except Exception as e:
                         print(f"Error deleting old image from Cloudinary: {e}")
 
 
                 vehicle.vehicle_image = validated.get("vehicle_image")
 
-                uploaded_img = validated.get('vehicle_image')
-
-                uploaded_img.seek(0)  # Reset file pointer before sending
 
 
-                predicted_label, confidence = send_image_to_huggingface(uploaded_img)
-                #predicted_label, confidence = predict_vehicle_type(uploaded_img)
 
-                if predicted_label:
-                    print(f" Predicted Vehicle Type: {predicted_label} ({confidence*100:.2f}% confidence)")
 
-                else:
-                    predicted_label = "Unknown"
-
-                # Rewind again before saving to storage
-                uploaded_img.seek(0)
-
+            print('test8')
             vehicle.save()
 
-
+            print('test9')
             # --- Update Insurance fields ---
-            if expiry_date_str is not None:
-                print(expiry_date_str)
+            if expiry_date is not None:
 
-                expiry_date = datetime.fromisoformat(expiry_date_str.replace("Z", "+00:00"))
                 insurance.expiry_date = expiry_date
 
             company = InsuranceCompany.objects.get(id=validated.get("company_id"))
             print('this is ',company)
 
-            plan = InsurancePlan.objects.get( company=company, vehicle_type=vehicle_type, payment_mode=validated.get("payment_mode"))
+            plan = InsurancePlan.objects.get( company=company, vehicle_tier=vehicle_tier)
             insurance.plan = plan
+            premium_amount = validated.get('premium_amount')
+            print(premium_amount)
+            insurance.amount = premium_amount
             print(plan)
            # insurance.amount = validated.get("premium_amount")
             insurance.save()
+            print('test10')
 
+            bluebook_renewal = BluebookRenewal.objects.get(vehicle=vehicle)
+            bluebook_renewal.renewal_date = bluebook_renewal_date
+            bluebook_renewal.save()
+
+
+
+            documents = request.FILES.getlist('documents')
+            doc_types = request.data.getlist('doc_types')
+            if documents and doc_types:
+                print('test10.1')
+                if len(documents) != len(doc_types):
+                    return Response(
+                        {"detail": "Mismatch between documents and document types count"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                print('test10.2')
+
+                for doc, doc_type in zip(documents, doc_types):
+                    print('test10.3')
+                    print("DOC TYPE RECEIVED =>", doc_type)
+
+                    VehicleDocument.objects.create(
+                        vehicle=vehicle,
+                        doc_type=doc_type,
+                        image=doc
+                    )
+                print('test11')
             return Response(
                 {"message": "Vehicle and related data updated successfully"},
                 status=status.HTTP_200_OK,
@@ -373,3 +418,34 @@ def delete_vehicle(request, pk):
 
     except Vehicle.DoesNotExist:
         return Response({'message': 'Vehicle not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+@api_view(['POST'])
+def predict_vehicle_type(request):
+    supported_types = ['Car', 'Motorcycle']
+    uploaded_img = request.FILES.get('vehicle_image')
+    if not uploaded_img:
+        return Response(
+            {"vehicleTypeError": "Please upload clear and valid vehicle image or try again."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    uploaded_img.seek(0)  # Reset file pointer before sending
+    predicted_label, confidence = send_image_to_huggingface(uploaded_img)
+    if predicted_label and predicted_label in supported_types:
+        return Response(
+            {
+                "predicted_label": predicted_label,
+
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    else:
+        return Response(
+            {
+                "vehicleTypeError": "Please upload clear and valid vehicle image or try again.",
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+

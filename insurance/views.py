@@ -19,7 +19,10 @@ class InsuranceCompanyView(APIView):
 @api_view(['GET'])
 def get_premium_amount(request):
     company_id = request.GET.get("company_id")
-    category = request.GET.get("category")
+    vehicle_type = request.GET.get("vehicle_type")
+
+    isEV = request.GET.get("is_ev")
+    isEV = isEV.lower() == "true" if isEV else False
     engine_cc = request.GET.get("engine_cc")
     engine_wattage = request.GET.get("engine_wattage")
     try:
@@ -28,11 +31,23 @@ def get_premium_amount(request):
         return JsonResponse({"error": "Invalid company_id."}, status=404)
     #premium amount calculation
     try:
-        if "EV" in category and engine_wattage:
+        if isEV and engine_wattage:
+            if vehicle_type == "Car" or vehicle_type == "Car (EV)":
+                category = "Car (EV)"
+            elif vehicle_type == "Motorcycle" or vehicle_type == "Motorcycle (EV)":
+                category = "Motorcycle (EV)"
+            else:
+                return JsonResponse({"error": "Unsupported vehicle_type."}, status=400)
             vehicle_tier = VehicleTier.objects.get(vehicle_type=category, min_engine_wattage__lte=engine_wattage, max_engine_wattage__gte=engine_wattage)
             plan = InsurancePlan.objects.get(company=company, vehicle_tier=vehicle_tier)
             premium_amount = plan.amount
-        elif "EV" not in category and engine_cc:
+        elif not isEV and engine_cc:
+            if vehicle_type == "Car" or vehicle_type == "Car (EV)":
+                category = "Car"
+            elif vehicle_type == "Motorcycle" or vehicle_type == "Motorcycle (EV)":
+                category = "Motorcycle"
+            else:
+                return JsonResponse({"error": "Unsupported vehicle_type."}, status=400)
             vehicle_tier = VehicleTier.objects.get(vehicle_type=category,min_engine_cc__lte=engine_cc,max_engine_cc__gte=engine_cc)
             plan = InsurancePlan.objects.get(company=company, vehicle_tier=vehicle_tier)
             premium_amount = plan.amount

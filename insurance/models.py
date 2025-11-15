@@ -18,10 +18,10 @@ class InsuranceCompany(models.Model):
 class VehicleTier(models.Model):
 
     VEHICLE_CHOICES = [
-        ("Private Vehicle (5 seater-EV)", "Car (EV)"),
-        ("Private Vehicle (5 seater)", "Car"),
-        ("Motorcycles (EV)", "Motorcycle (EV)"),
-        ("Motorcycles", "Motorcycle"),
+        ("Car (EV)", "Car (EV)"),
+        ("Car", "Car"),
+        ("Motorcycle (EV)", "Motorcycle (EV)"),
+        ("Motorcycle", "Motorcycle"),
     ]
 
     vehicle_type = models.CharField(max_length=50, choices=VEHICLE_CHOICES)

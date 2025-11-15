@@ -12,9 +12,13 @@ class InsuranceCompanySerializer(serializers.ModelSerializer):
 
 
 class VehicleTierSerializer(serializers.ModelSerializer):
+    vehicle_type = serializers.SerializerMethodField()
     class Meta:
         model = VehicleTier
         fields = "__all__"
+
+    def get_vehicle_type(self, obj):
+        return obj.get_vehicle_type_display()
 
 
 

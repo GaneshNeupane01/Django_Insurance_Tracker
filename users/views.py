@@ -163,19 +163,21 @@ def edit_profile(request):
     user = request.user
     user_detail = UserDetail.objects.get(user=user)
     serializer = EditProfileSerializer(data=request.data)
-    if serializer.is_valid():
-        first_name = serializer.validated_data.get('first_name')
-        last_name = serializer.validated_data.get('last_name')
-        email = serializer.validated_data.get('email')
-        phone_number = serializer.validated_data.get('phone_number')
-        profile_image = serializer.validated_data.get('profile_image')
-        user.first_name = first_name
-        user.last_name = last_name
-        user.email = email
-        if phone_number:
-            user_detail.phone_number = phone_number
-        if profile_image:
-            user_detail.profile = profile_image
-        user.save()
-        user_detail.save()
-        return Response({'message': 'Profile updated successfully'})
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    first_name = serializer.validated_data.get('first_name')
+    last_name = serializer.validated_data.get('last_name')
+    email = serializer.validated_data.get('email')
+    phone_number = serializer.validated_data.get('phone_number')
+    profile_image = serializer.validated_data.get('profile_image')
+    user.first_name = first_name
+    user.last_name = last_name
+    user.email = email
+    if phone_number:
+        user_detail.phone_number = phone_number
+    if profile_image:
+        user_detail.profile = profile_image
+    user.save()
+    user_detail.save()
+    return Response({'message': 'Profile updated successfully'})

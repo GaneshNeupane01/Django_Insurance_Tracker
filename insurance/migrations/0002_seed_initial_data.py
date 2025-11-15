@@ -25,63 +25,63 @@ def create_initial_companies_and_plans(apps, schema_editor):
     plan_tiers_data = [
         # --- Private Vehicle (5 seater-EV) ---
         {
-            "vehicle_type": "Private Vehicle (5 seater-EV)",
+            "vehicle_type": "Car (EV)",
             "min_engine_wattage": 0, "max_engine_wattage": 19999,
             "amount": 7355.00,
         },
         {
-            "vehicle_type": "Private Vehicle (5 seater-EV)",
+            "vehicle_type": "Car (EV)",
             "min_engine_wattage": 20000, "max_engine_wattage": 999999,
             "amount": 8485.00,
         },
 
         # --- Motorcycles (Non-EV) ---
         {
-            "vehicle_type": "Motorcycles",
+            "vehicle_type": "Motorcycle",
             "min_engine_cc": 0, "max_engine_cc": 149,
             "amount": 1705.00,
         },
         {
-            "vehicle_type": "Motorcycles",
+            "vehicle_type": "Motorcycle",
             "min_engine_cc": 150, "max_engine_cc": 250,
             "amount": 1931.00,
         },
         {
-            "vehicle_type": "Motorcycles",
+            "vehicle_type": "Motorcycle",
             "min_engine_cc": 251, "max_engine_cc": 999999,
             "amount": 2157.00,
         },
 
         # --- Motorcycles (EV) ---
         {
-            "vehicle_type": "Motorcycles (EV)",
+            "vehicle_type": "Motorcycle (EV)",
             "min_engine_wattage": 0, "max_engine_wattage": 799,
             "amount": 1706.30,
         },
         {
-            "vehicle_type": "Motorcycles (EV)",
+            "vehicle_type": "Motorcycle (EV)",
             "min_engine_wattage": 800, "max_engine_wattage": 1199,
             "amount": 1932.30,
         },
         {
-            "vehicle_type": "Motorcycles (EV)",
+            "vehicle_type": "Motorcycle (EV)",
             "min_engine_wattage": 1200, "max_engine_wattage": 999999,
             "amount": 2158.30,
         },
 
         # --- Private Vehicle (5 seater) (CC) ---
         {
-            "vehicle_type": "Private Vehicle (5 seater)",
+            "vehicle_type": "Car",
             "min_engine_cc": 0, "max_engine_cc": 999,
             "amount": 7355.00,
         },
         {
-            "vehicle_type": "Private Vehicle (5 seater)",
+            "vehicle_type": "Car",
             "min_engine_cc": 1000, "max_engine_cc": 1600,
             "amount": 8485.00,
         },
         {
-            "vehicle_type": "Private Vehicle (5 seater)",
+            "vehicle_type": "Car",
             "min_engine_cc": 1601, "max_engine_cc": 999999,
             "amount": 10745.00,
         },
