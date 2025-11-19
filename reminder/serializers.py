@@ -18,6 +18,8 @@ class ReminderSerializer(serializers.ModelSerializer):
     snoozed_until = serializers.DateTimeField(format=None, read_only=True)
     snoozed_until_bs = serializers.SerializerMethodField()
     renewal_date_bs = serializers.SerializerMethodField()
+    frequency = serializers.SerializerMethodField()
+
 
     class Meta:
         model = Reminder
@@ -35,3 +37,6 @@ class ReminderSerializer(serializers.ModelSerializer):
             bb = obj.vehicle.bluebook_renewals.first()
             return ad_to_bs(bb.renewal_date) if bb.renewal_date else None
         return None
+
+    def get_frequency(self,obj):
+        return obj.get_frequency_display()

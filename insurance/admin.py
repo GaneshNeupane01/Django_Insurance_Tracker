@@ -29,7 +29,7 @@ class InsuranceAdmin(admin.ModelAdmin):
         "insurance_date",
         "expiry_date",
     )
-    list_filter = ("plan__company", "plan__vehicle_tier")
+    list_filter = ("plan__company", "plan__vehicle_tier","expiry_date")
 
     # --- Custom methods to pull data from related InsurancePlan ---
     def get_company(self, obj):

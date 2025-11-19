@@ -17,11 +17,10 @@ class ExpoPushToken(models.Model):
 class Reminder(models.Model):
 
     FrequencyChoices = [
-            ('1d', 'Daily'),
-            ('3d', '3 Days'),
-            ('7d', 'Weekly'),
-            ('14d', '14 Days'),
-            ('30d', 'Monthly'),
+            ('1d', '1 day before expiry'),
+            ('7d', '1 week before expiry'),
+            ('14d', '2 weeks before expiry'),
+            ('30d', '30 days before expiry'),
         ]
 
     reminder_id = models.AutoField(primary_key=True)
@@ -34,7 +33,8 @@ class Reminder(models.Model):
     is_active = models.BooleanField(default=False)
     #is_expired = models.BooleanField(default=False)
     #choices field for frequency of reminder_date like weekly,daily,monthly
-    frequency = models.CharField(max_length=30,default="7d",choices=FrequencyChoices)
+    frequency = models.CharField(max_length=30,default="1d",choices=FrequencyChoices)
+    frequency_updated_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:       
         verbose_name_plural = "Reminder"
@@ -59,7 +59,9 @@ class Reminder(models.Model):
         return False
 
 
+
     def should_notify(self):
+
 
         if self.target_type == 'insurance':
             insurance = self.vehicle.insurance_set.order_by('-expiry_date').first()
@@ -70,35 +72,49 @@ class Reminder(models.Model):
         else:
             return False
 
-
-
-
         now = timezone.now()
-        if self.snoozed_until and self.snoozed_until < now:
-            self.snoozed_until = None
-            self.is_active = True
-            self.save()
-            return True
 
-        if self.snoozed_until and self.snoozed_until > now:
-            print('user snoozed greater')
-            return False  # user snoozed
 
-        if self.last_sent is None:
-            return True
+        if self.snoozed_until:
+            if self.snoozed_until <= now:
 
-        if expiry_date:
-            if (expiry_date - now.date()) <= timedelta(days=1) and (now - self.last_sent) >= timedelta(hours=12):
+                self.snoozed_until = None
+                self.is_active = True
+                self.save()
                 return True
-        if self.frequency == '1d' and (now - self.last_sent) >= timedelta(days=1):
-            return True
-        if self.frequency == '3d' and (now - self.last_sent) >= timedelta(days=3):
-            return True
-        if self.frequency == '7d' and (now - self.last_sent) >= timedelta(weeks=1):
-            return True
-        if self.frequency == '14d' and (now - self.last_sent) >= timedelta(weeks=2):
-            return True
-        if self.frequency == '30d' and (now - self.last_sent) >= timedelta(days=30):
-            return True
+            return False  # still snoozed
+
+
+        frequency_map = {
+            "1d": timedelta(days=1),
+            "7d": timedelta(days=7),
+            "14d": timedelta(days=14),
+            "30d": timedelta(days=30),
+
+        }
+        reminder_window = frequency_map.get(self.frequency, timedelta(days=1))
+
+
+        if not expiry_date:
+            return False
+
+        try:
+            # if expiry_date is a date object (not datetime)
+            days_left = (expiry_date - now.date()).days
+        except Exception:
+            # expiry_date is datetime
+            days_left = (expiry_date - now).days
+
+        # Only proceed if we're within the chosen window
+        if days_left <= reminder_window.days:
+
+            if self.last_sent is None:
+                return True
+
+            if self.frequency_updated_at and self.frequency_updated_at > self.last_sent:
+                return True
+
+            if (now - self.last_sent) >= reminder_window:
+                return True
 
         return False

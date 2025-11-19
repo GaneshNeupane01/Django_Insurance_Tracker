@@ -35,7 +35,7 @@ class BluebookRenewalSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = BluebookRenewal
-        fields = ["renewal_date_bs","renewal_date"]
+        fields = ["id","renewal_date_bs","renewal_date"]
     def get_renewal_date_bs(self, obj):
         return ad_to_bs(obj.renewal_date)
 
@@ -60,8 +60,8 @@ class AddVehicleSerializer(serializers.Serializer):
    # name = serializers.CharField(max_length=20)
     company_id = serializers.IntegerField()
     plate_number = serializers.CharField(max_length=30)
-    engine_cc = serializers.IntegerField(required=False)
-    engine_wattage = serializers.IntegerField(required=False)
+    engine_cc = serializers.IntegerField(required=False,max_value=10000)
+    engine_wattage = serializers.IntegerField(required=False,max_value=1000000)
     vehicle_type = serializers.CharField(max_length=40)
     is_ev = serializers.CharField(max_length=5)
    # insurance_company = serializers.CharField(max_length=30)

@@ -5,7 +5,6 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
-
 class FamilyMember(models.Model):
     family_member_id = models.AutoField(primary_key=True)
     family = models.ForeignKey(Family,on_delete=models.CASCADE)

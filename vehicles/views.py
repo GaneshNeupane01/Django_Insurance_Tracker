@@ -449,3 +449,7 @@ def predict_vehicle_type(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
+
+
+
+

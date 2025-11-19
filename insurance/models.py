@@ -3,6 +3,7 @@ from django.db import models
 from vehicles.models import Vehicle
 
 
+
 # Create your models here.
 
 class InsuranceCompany(models.Model):

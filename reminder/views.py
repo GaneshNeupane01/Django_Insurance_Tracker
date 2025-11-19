@@ -1,5 +1,5 @@
 from django.shortcuts import render
-
+from dateutil.relativedelta import relativedelta
 # Create your views here.
 
 import requests
@@ -11,12 +11,15 @@ from .serializers import ReminderSerializer
 from familymember.models import FamilyMember
 from users.models import UserDetail
 from django.utils import timezone
-from datetime import datetime
+from datetime import datetime, timedelta
 from .models import ExpoPushToken
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from .utils import send_push_notification
 from .cron import send_reminder_notifications
+from insurance.models import Insurance
+from vehicles.models import BluebookRenewal
+
 
 
 class RemindersView(APIView):
@@ -61,52 +64,81 @@ def ReminderTrigger(request):
 def SavenReminderConfig(request):
     try:
         reminder_id = request.data.get('reminder_id')
-        frequency = request.data.get('frequency')
+        new_freq = request.data.get('frequency')
         isSnoozeEnabled = request.data.get('isSnoozeEnabled')
 
-        print("this is id ", reminder_id)
-        print("this is frequency ", frequency)
+        reminder = Reminder.objects.get(reminder_id=reminder_id)
 
-        snooze_data = request.data.get('snooze')
+        snooze_data = request.data.get('snooze', {})
         snooze_duration = None
         custom_snooze_date = None
 
         if snooze_data:
-            print(snooze_data)
             snooze_duration = snooze_data.get('duration')
-            print(snooze_duration)
             custom_snooze_date = snooze_data.get('customDate')
-            print(custom_snooze_date)
 
-        reminder = Reminder.objects.get(reminder_id=reminder_id)
-        reminder.frequency = frequency
+        frequency_map = {
+            "1d": timedelta(days=1),
+            "7d": timedelta(days=7),
+
+            "14d": timedelta(days=14),
+            "30d": timedelta(days=30),
+        }
+
+        new_window = frequency_map.get(new_freq, timedelta(days=1))
+
+        # Get expiry date
+        if reminder.target_type == "insurance":
+            ins = reminder.vehicle.insurance_set.order_by('-expiry_date').first()
+            expiry_date = ins.expiry_date if ins else None
+        elif reminder.target_type == "bluebook":
+            bb = reminder.vehicle.bluebook_renewals.order_by('-renewal_date').first()
+            expiry_date = bb.renewal_date if bb else None
+        else:
+            expiry_date = None
+
+        now = timezone.now()
+        too_late = False
+
+        if expiry_date:
+            try:
+                days_left = (expiry_date - now.date()).days
+            except:
+                days_left = (expiry_date - now).days
+
+            if days_left < new_window.days:
+                too_late = True
+
+        reminder.frequency = new_freq
+
+        # Only update frequency_updated_at if not too late
+        if not too_late:
+            reminder.frequency_updated_at = now
+
 
         if isSnoozeEnabled:
             reminder.is_active = False
 
-            if snooze_duration == 'custom' and custom_snooze_date:
-                # Adjust format depending on what frontend sends
-               # custom_snooze_date = datetime.fromisoformat(custom_snooze_date)
-                custom_snooze_date = datetime.fromisoformat(custom_snooze_date.replace("Z", "+00:00"))
-                now = timezone.now()
+            if snooze_duration == "custom" and custom_snooze_date:
+                custom = datetime.fromisoformat(custom_snooze_date.replace("Z", "+00:00"))
+                custom = custom.replace(
+                    hour=now.hour,
+                    minute=now.minute,
+                    second=now.second,
+                    microsecond=now.microsecond
+                )
+                reminder.snoozed_until = custom
 
-                # Combine the date from frontend with current time
-                custom_snooze_date = custom_snooze_date.replace(hour=now.hour, minute=now.minute, second=now.second, microsecond=now.microsecond)
-
-               # custom_snooze_date = timezone.make_aware(custom_snooze_date)
-                reminder.snoozed_until = custom_snooze_date
-            elif snooze_duration == '6h':
-                reminder.snoozed_until = timezone.now() + timezone.timedelta(hours=6)
-            elif snooze_duration == '1d':
-                reminder.snoozed_until = timezone.now() + timezone.timedelta(days=1)
-            elif snooze_duration == '2d':
-                reminder.snoozed_until = timezone.now() + timezone.timedelta(days=2)
-            elif snooze_duration == '3d':
-                reminder.snoozed_until = timezone.now() + timezone.timedelta(days=3)
-            elif snooze_duration == '7d':
-                reminder.snoozed_until = timezone.now() + timezone.timedelta(days=7)
             else:
-                reminder.snoozed_until = timezone.now() + timezone.timedelta(days=7)
+                durations = {
+                    '6h': timedelta(hours=6),
+                    '1d': timedelta(days=1),
+                    '2d': timedelta(days=2),
+                    '3d': timedelta(days=3),
+                    '7d': timedelta(days=7)
+                }
+                reminder.snoozed_until = now + durations.get(snooze_duration, timedelta(days=7))
+
         else:
             reminder.is_active = True
             reminder.snoozed_until = None
@@ -115,13 +147,14 @@ def SavenReminderConfig(request):
 
         return Response({
             "message": "Reminder updated successfully",
-            "reminder_id": reminder_id,
-            "frequency": frequency,
+            "too_late": too_late,
+            "frequency": reminder.frequency,
             "snoozed_until": reminder.snoozed_until
-        }, status=200)
+        })
 
     except Reminder.DoesNotExist:
         return Response({"error": "Reminder not found"}, status=404)
+
 
 
 @api_view(['POST'])
@@ -143,3 +176,29 @@ def test_notification(request):
     if token:
         send_push_notification(token.token, "Test Notification", "This is a test notification")
     return Response({"message": "Notification sent successfully"})
+
+
+
+
+@api_view(['POST'])
+def mark_renewed(request):
+
+    target_type = request.data.get('target_type')
+    id = request.data.get('id')
+
+    if target_type == 'bluebook':
+        bluebook_renewals = BluebookRenewal.objects.get(id=id)
+        previous_renewal_date = bluebook_renewals.renewal_date
+
+        bluebook_renewals.renewal_date = previous_renewal_date + relativedelta(years=1)
+
+        bluebook_renewals.save()
+    elif target_type == 'insurance':
+        insurance = Insurance.objects.get(insurance_id=id)
+        previous_renewal_date = insurance.expiry_date
+
+        insurance.expiry_date = previous_renewal_date + relativedelta(years=1)
+        insurance.save()
+    else:
+        return Response({"error": "Invalid target_type"}, status=400)
+    return Response({"message": "Renewal date updated successfully"})
