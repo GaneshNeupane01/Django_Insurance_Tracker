@@ -4,6 +4,10 @@ from .utils import send_push_notification
 from datetime import datetime
 from django.utils import timezone
 from familymember.models import FamilyMember
+from insurance.models import Insurance
+from vehicles.models import BluebookRenewal
+
+
 
 def send_reminder_notifications():
     print('called send_reminder_notification func')
@@ -12,19 +16,44 @@ def send_reminder_notifications():
 
     now = timezone.now()
     for reminder in reminders:
-        title = f"Reminder : {reminder.vehicle.insurance_set.plan.vehicle_tier.vehicle_type}-{reminder.vehicle.plate_number}"
+        insurance = (
+            Insurance.objects.select_related('plan__vehicle_tier')
+            .filter(vehicle=reminder.vehicle)
+            .order_by('-expiry_date')
+            .first()
+        )
+        bluebook = (
+            BluebookRenewal.objects.filter(vehicle=reminder.vehicle)
+            .order_by('-renewal_date')
+            .first()
+        )
+
+        vehicle_type = (
+            insurance.plan.vehicle_tier.vehicle_type
+            if insurance and getattr(insurance, 'plan', None) and getattr(insurance.plan, 'vehicle_tier', None)
+            else 'Vehicle'
+        )
+        title = f"Reminder : {vehicle_type}-{reminder.vehicle.plate_number}"
+
         if reminder.is_expired:
             continue
 
-        else:
-            print('not expired')
-            if reminder.target_type == 'insurance':
-                body = f"Insurance expires on {reminder.vehicle.insurance_set.plan.vehicle_tier.vehicle_type}-{reminder.vehicle.plate_number} on {reminder.vehicle.insurance_set.expiry_date}"
-            elif reminder.target_type == 'bluebook':
-                body = f'Bluebook renewal on {reminder.vehicle.plate_number}'
-            else:
+        if reminder.target_type == 'insurance':
+            if not insurance:
                 continue
-
+            body = (
+                f"Insurance expires on {vehicle_type}-"
+                f"{reminder.vehicle.plate_number} on {insurance.expiry_date}"
+            )
+        elif reminder.target_type == 'bluebook':
+            if not bluebook:
+                continue
+            body = (
+                f'Bluebook renewal for {reminder.vehicle.plate_number} '
+                f'on {bluebook.renewal_date}'
+            )
+        else:
+            continue
         if reminder.should_notify():
             print('should notify')
             family = reminder.family_member.family
