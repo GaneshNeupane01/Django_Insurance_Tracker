@@ -18,6 +18,7 @@ class Reminder(models.Model):
 
     FrequencyChoices = [
             ('1d', '1 day before expiry'),
+            ('3d', '3 days before expiry'),
             ('7d', '1 week before expiry'),
             ('14d', '2 weeks before expiry'),
             ('30d', '30 days before expiry'),
@@ -87,6 +88,7 @@ class Reminder(models.Model):
 
         frequency_map = {
             "1d": timedelta(days=1),
+            "3d": timedelta(days=3),
             "7d": timedelta(days=7),
             "14d": timedelta(days=14),
             "30d": timedelta(days=30),

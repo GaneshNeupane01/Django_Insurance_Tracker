@@ -3,6 +3,7 @@ from dateutil.relativedelta import relativedelta
 # Create your views here.
 
 import requests
+import os
 from rest_framework.views import APIView
 
 from rest_framework.response import Response
@@ -19,6 +20,10 @@ from .utils import send_push_notification
 from .cron import send_reminder_notifications
 from insurance.models import Insurance
 from vehicles.models import BluebookRenewal
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+from .cron import send_reminder_notifications
 
 
 
@@ -79,6 +84,7 @@ def SavenReminderConfig(request):
 
         frequency_map = {
             "1d": timedelta(days=1),
+            "3d": timedelta(days=3),
             "7d": timedelta(days=7),
 
             "14d": timedelta(days=14),
@@ -202,3 +208,20 @@ def mark_renewed(request):
     else:
         return Response({"error": "Invalid target_type"}, status=400)
     return Response({"message": "Renewal date updated successfully"})
+
+
+
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def run_notifications_job(request):
+    # 1. Check for the secret key in the URL's query parameters
+    secret_key = request.GET.get('key')
+
+    # 2. Compare it with the secret stored in environment variables
+    if secret_key != os.environ.get('CRON_JOB_SECRET'):
+        return JsonResponse({'status': 'unauthorized', 'message': 'Invalid key'}, status=401)
+
+    # If the key is valid, run the job
+    send_reminder_notifications()
+    return JsonResponse({'status': 'success', 'message': 'Notification job executed.'})

@@ -67,7 +67,7 @@ INSTALLED_APPS = [
 
 # in settings.py
 CRONJOBS = [
-    ('*/1 * * * *', 'reminder.cron.send_reminder_notifications'),  # every 1 mins
+    ('*/10 * * * *', 'reminder.cron.send_reminder_notifications'),  # every 10 mins
 ]
 
 
