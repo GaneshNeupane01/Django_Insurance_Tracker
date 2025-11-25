@@ -223,5 +223,7 @@ def run_notifications_job(request):
         return JsonResponse({'status': 'unauthorized', 'message': 'Invalid key'}, status=401)
 
     # If the key is valid, run the job
+    print('valid key and calling')
     send_reminder_notifications()
+    print('called successfully')
     return JsonResponse({'status': 'success', 'message': 'Notification job executed.'})
