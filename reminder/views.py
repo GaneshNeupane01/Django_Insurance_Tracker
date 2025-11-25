@@ -219,7 +219,7 @@ def run_notifications_job(request):
     secret_key = request.GET.get('key')
 
     # 2. Compare it with the secret stored in environment variables
-    if secret_key != os.environ.get('CRON_JOB_SECRET'):
+    if secret_key != os.environ.get('CRON_JOB_SECRET_KEY'):
         return JsonResponse({'status': 'unauthorized', 'message': 'Invalid key'}, status=401)
 
     # If the key is valid, run the job

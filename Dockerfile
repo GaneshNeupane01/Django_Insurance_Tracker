@@ -22,4 +22,4 @@ EXPOSE 8000
 CMD python manage.py migrate --noinput && \
     python create_superuser.py && \
     python manage.py collectstatic --noinput && \
-    gunicorn DjangoModels.wsgi:application --bind 0.0.0.0:8000
+    gunicorn DjangoModels.wsgi:application --bind 0.0.0.service cron start && \0:8000
