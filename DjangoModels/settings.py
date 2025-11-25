@@ -13,9 +13,15 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import os
 from pathlib import Path
 import dj_database_url
+import environ
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+env = environ.Env()
+environ.Env.read_env(env_file=os.path.join(BASE_DIR, '.env'))
+
+
+
 CORS_ALLOW_ALL_ORIGINS = True
 
 
@@ -23,10 +29,10 @@ CORS_ALLOW_ALL_ORIGINS = True
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'tzGCemglPecJ0dMdx3vnKPVKIuvVHWCaXApLcllkUGc'
+SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env('DEBUG', default=True)
 
 ALLOWED_HOSTS = ["*"]
 
@@ -101,12 +107,10 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 CLOUDINARY_STORAGE = {
-   'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
-    'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
-   'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
-        #  'CLOUD_NAME': 'daxlrnkcb',
-        # 'API_KEY': '948349496971634',
-        #  'API_SECRET': 'yxKO2I4RQBD2jVppgVSxWzsjlsM',
+   'CLOUD_NAME': env('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': env('CLOUDINARY_API_KEY'),
+   'API_SECRET': env('CLOUDINARY_API_SECRET'),
+
 
 
 }
