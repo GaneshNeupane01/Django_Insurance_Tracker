@@ -103,6 +103,7 @@ class VehicleListView(APIView):
             is_ev = validated.get('is_ev')
             is_ev = is_ev.lower() == "true" if is_ev else False
             vehicle_type = validated.get("vehicle_type")
+            vehicle_category = ""
             if is_ev and validated.get("engine_wattage"):
                 engine_wattage = validated.get("engine_wattage")
                 engine_cc = None
@@ -157,7 +158,8 @@ class VehicleListView(APIView):
                 engine_cc=engine_cc,
                 engine_wattage=engine_wattage,
                 family_member=family_member,
-                vehicle_image=uploaded_img
+                vehicle_image=uploaded_img,
+                vehicle_type=vehicle_category
             )
             bluebook_renewal = BluebookRenewal.objects.create(
                 vehicle=vehicle,

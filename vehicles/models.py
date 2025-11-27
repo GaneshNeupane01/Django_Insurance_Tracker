@@ -11,6 +11,7 @@ class Vehicle(models.Model):
     plate_number = models.CharField(max_length=20)
     engine_cc = models.IntegerField(blank=True,null=True)
     engine_wattage = models.IntegerField(blank=True,null=True)
+    vehicle_type = models.CharField(max_length=50, blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     name = models.CharField(max_length=100,blank=True,null=True)
@@ -18,7 +19,7 @@ class Vehicle(models.Model):
 
 
     def __str__(self):
-        return self.plate_number
+        return f"{self.plate_number} - {self.vehicle_type or 'N/A'}"
 
     class Meta:       
         verbose_name_plural = "Vehicle"  

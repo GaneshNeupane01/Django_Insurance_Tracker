@@ -24,6 +24,8 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from .cron import send_reminder_notifications
+from DjangoModels.utils.date_converter import ad_to_bs as AdToBs
+from DjangoModels.utils.date_converter import add_years_in_bs
 
 
 
@@ -195,8 +197,10 @@ def mark_renewed(request):
     if target_type == 'bluebook':
         bluebook_renewals = BluebookRenewal.objects.get(id=id)
         previous_renewal_date = bluebook_renewals.renewal_date
+        next_renewal_date_ad = add_years_in_bs(previous_renewal_date, 1)
 
-        bluebook_renewals.renewal_date = previous_renewal_date + relativedelta(years=1)
+
+        bluebook_renewals.renewal_date = next_renewal_date_ad
 
         bluebook_renewals.save()
     elif target_type == 'insurance':
