@@ -196,19 +196,19 @@ class VehicleListView(APIView):
             now = timezone.now()
 
           #for insurance expiry creating reminder
-            if (expiry_date - now) > timedelta(days=30):
-                is_active = False
-                snoozed_until = expiry_date - timedelta(days=30)
-            else:
-                is_active = True
-                snoozed_until = None
+           # if (expiry_date - now) > timedelta(days=30):
+              #  is_active = False
+              #  snoozed_until = expiry_date - timedelta(days=30)
+           # else:
+                #is_active = True
+               # snoozed_until = None
 
             Reminder.objects.create(
                 vehicle=vehicle,
                 family_member=family_member,
                 target_type="insurance",
-                snoozed_until=snoozed_until,
-                is_active=is_active,
+                snoozed_until=None,
+                is_active=True,
                 last_sent=None
             )
             print('created insurance renewal_date reminder')
@@ -224,8 +224,8 @@ class VehicleListView(APIView):
                 vehicle=vehicle,
                 family_member=family_member,
                 target_type="bluebook",
-                snoozed_until=snoozed_until,
-                is_active=is_active,
+                snoozed_until=None,
+                is_active=True,
                 last_sent=None
                 )
 

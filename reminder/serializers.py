@@ -13,7 +13,7 @@ class ReminderSerializer(serializers.ModelSerializer):
    # insurance = InsuranceSerializer(source="vehicle.insurance_set.first",read_only=True)
    # bluebook = BluebookRenewalSerializer(source="vehicle.bluebook_renewals.first", read_only=True)
     vehicle = serializers.StringRelatedField()
-    family_member = serializers.StringRelatedField()
+    family_member = serializers.SerializerMethodField()
     is_expired = serializers.SerializerMethodField()
     snoozed_until = serializers.DateTimeField(format=None, read_only=True)
     snoozed_until_bs = serializers.SerializerMethodField()
@@ -51,3 +51,6 @@ class ReminderSerializer(serializers.ModelSerializer):
             bb = obj.vehicle.bluebook_renewals.first()
             return bb.id
         return None
+
+    def get_family_member(self, obj):
+        return str(obj.family_member.user.user.first_name)

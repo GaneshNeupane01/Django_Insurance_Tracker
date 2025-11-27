@@ -6,6 +6,7 @@ from django.utils import timezone
 from familymember.models import FamilyMember
 from insurance.models import Insurance
 from vehicles.models import BluebookRenewal
+from DjangoModels.utils.date_converter import ad_to_bs as AdToBs
 
 
 
@@ -43,14 +44,14 @@ def send_reminder_notifications():
                 continue
             body = (
                 f"Insurance expires on {vehicle_type}-"
-                f"{reminder.vehicle.plate_number} on {insurance.expiry_date}"
+                f"{reminder.vehicle.plate_number} on {AdToBs(insurance.expiry_date)}"
             )
         elif reminder.target_type == 'bluebook':
             if not bluebook:
                 continue
             body = (
                 f'Bluebook renewal for {reminder.vehicle.plate_number} '
-                f'on {bluebook.renewal_date}'
+                f'on {AdToBs(bluebook.renewal_date)}'
             )
         else:
             continue
