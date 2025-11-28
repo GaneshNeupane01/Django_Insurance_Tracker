@@ -316,6 +316,7 @@ class EditVehicleView(APIView):
 
 
             vehicle.plate_number = validated.get("plate_number")
+            vehicle.vehicle_type = vehicle_type
 
             print('test6')
 

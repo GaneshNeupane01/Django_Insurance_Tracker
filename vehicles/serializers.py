@@ -19,16 +19,6 @@ from familymember.models import FamilyMember
 from datetime import datetime, timezone
 
 
-class FamilyMemberSerializer(serializers.ModelSerializer):
-    user = UserDetailSerializer()
-    family = FamilySerializer()
-
-
-    class Meta:
-        model = FamilyMember
-        fields = ["family_member_id", "role", "user", "family"]
-
-
 
 class BluebookRenewalSerializer(serializers.ModelSerializer):
     renewal_date_bs = serializers.SerializerMethodField()
@@ -38,7 +28,14 @@ class BluebookRenewalSerializer(serializers.ModelSerializer):
         fields = ["id","renewal_date_bs","renewal_date"]
     def get_renewal_date_bs(self, obj):
         return ad_to_bs(obj.renewal_date)
+        
+class FamilyMemberSerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField(source="user.user.first_name")
+    last_name = serializers.CharField(source="user.user.last_name")
 
+    class Meta:
+        model = FamilyMember
+        fields = ["family_member_id", "first_name", "last_name"]
 
 class VehicleSerializer(serializers.ModelSerializer):
 

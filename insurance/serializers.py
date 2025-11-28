@@ -24,15 +24,14 @@ class VehicleTierSerializer(serializers.ModelSerializer):
 
 class InsurancePlanSerializer(serializers.ModelSerializer):
     company = InsuranceCompanySerializer()
-    vehicle_tier = VehicleTierSerializer()
+  #  vehicle_tier = VehicleTierSerializer()
 
     class Meta:
         model = InsurancePlan
-        fields = "__all__"
+        fields = ["id","company"]
 
 class InsuranceSerializer(serializers.ModelSerializer):
     plan = InsurancePlanSerializer()
-    insurance_date = serializers.DateTimeField(format="%m %d, %Y", read_only=True)
     expiry_date = serializers.DateTimeField(
 
         read_only=True
