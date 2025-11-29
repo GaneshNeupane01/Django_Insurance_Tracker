@@ -60,6 +60,8 @@ urllib3==2.5.0
 wheel==0.45.1
 whitenoise==6.10.0
 
-
-#for cpu version of easyocr run following command in terminal
-#pip install torch==2.9.1+cpu torchvision==0.24.1+cpu torchaudio==2.9.1+cpu -f https://download.pytorch.org/whl/cpu/torch_stable.html
+# PyTorch CPU for Render
+torch==2.3.1+cpu
+torchvision==0.18.1+cpu
+torchaudio==2.3.1+cpu
+--extra-index-url https://download.pytorch.org/whl/cpu
