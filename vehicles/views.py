@@ -29,19 +29,20 @@ from insurance.models import InsuranceCompany, InsurancePlan
 
 from cloudinary.uploader import destroy
 from django.db.models import Q
-from vehicles.utils import extract_nepali_plate
+from django.http import JsonResponse
 
 
 import requests
 
-HUGGINGFACE_SPACE_URL = "https://botinfinity-vehiclepredictor.hf.space/predict"
+HUGGINGFACE_SPACE_URL_VEHICLE_TYPE = "https://botinfinity-vehiclepredictor.hf.space/predict"
+HUGGINGFACE_SPACE_URL_VEHICLE_PLATE = "https://botinfinity-plate-number-predictor.hf.space/ocr"
 
-def send_image_to_huggingface(uploaded_file):
+def send_image_to_huggingface_vehicle_type(uploaded_file):
     files = {
         "file": (uploaded_file.name, uploaded_file.read(), uploaded_file.content_type)
     }
     try:
-        response = requests.post(HUGGINGFACE_SPACE_URL, files=files, timeout=40)
+        response = requests.post(HUGGINGFACE_SPACE_URL_VEHICLE_TYPE, files=files, timeout=40)
         response.raise_for_status()
         data = response.json()
         return data.get("label"), data.get("confidence")
@@ -49,7 +50,22 @@ def send_image_to_huggingface(uploaded_file):
         print("Prediction service error:", e)
         return None, None
 
-
+def send_image_to_huggingface_vehicle_plate(uploaded_file):
+    files = {
+        "file": (uploaded_file.name, uploaded_file.read(), uploaded_file.content_type)
+    }
+    try:
+        response = requests.post(HUGGINGFACE_SPACE_URL_VEHICLE_PLATE, files=files, timeout=40)
+        response.raise_for_status()
+        data = response.json()
+        if data.get("plate"):
+            return data["plate"]
+        else:
+            print("HF OCR returned error:", data.get("error"))
+            return None
+    except requests.RequestException as e:
+        print("Plate number extraction service error:", e)
+        return None
 
 class VehicleListView(APIView):
     print('api called successfully')
@@ -437,8 +453,8 @@ def predict_vehicle_type(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
     uploaded_img.seek(0)  # Reset file pointer before sending
-    predicted_label, confidence = send_image_to_huggingface(uploaded_img)
-    plate_number = extract_nepali_plate(uploaded_plate_img)
+    predicted_label, confidence = send_image_to_huggingface_vehicle_type(uploaded_img)
+    plate_number = send_image_to_huggingface_vehicle_plate(uploaded_plate_img)
     print('plate number is ',plate_number)
     if predicted_label and predicted_label in supported_types:
         return Response(

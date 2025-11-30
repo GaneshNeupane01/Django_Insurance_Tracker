@@ -1,28 +1,29 @@
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install dependencies required by OpenCV + cryptography
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
-    libgl1 \
-    libglib2.0-0 \
     cron \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python deps
+# Copy requirements and install
 COPY requirements.txt .
-RUN pip install --no-cache-dir pip==24.0
+
+# Install CPU-only PyTorch first (latest compatible version) and then other dependencies
+
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy app
+# Copy application code
 COPY . .
 
+# Expose port for Gunicorn
 EXPOSE 8000
 
+# Run migrations, create superuser, collect static files, and start Gunicorn
 CMD python manage.py migrate --noinput && \
     python create_superuser.py && \
     python manage.py collectstatic --noinput && \
     gunicorn DjangoModels.wsgi:application --bind 0.0.0.0:8000
-
