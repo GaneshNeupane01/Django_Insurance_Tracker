@@ -35,9 +35,10 @@ class ProfileSerializer(serializers.ModelSerializer):
     profile_image = serializers.SerializerMethodField()
 
 
+
     class Meta:
         model = UserDetail
-        fields = ["user",  "profile_image", "family", "member_count"]
+        fields = ["user",  "profile_image", "family", "member_count","phone_number"]
 
     def get_family(self, obj):
         family_member = FamilyMember.objects.filter(user=obj).first()

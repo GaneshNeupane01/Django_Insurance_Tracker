@@ -31,7 +31,6 @@ from cloudinary.uploader import destroy
 from django.db.models import Q
 from django.http import JsonResponse
 
-
 import requests
 
 HUGGINGFACE_SPACE_URL_VEHICLE_TYPE = "https://botinfinity-vehiclepredictor.hf.space/predict"
@@ -446,21 +445,20 @@ def delete_vehicle(request, pk):
 def predict_vehicle_type(request):
     supported_types = ['Car', 'Motorcycle']
     uploaded_img = request.FILES.get('vehicle_image')
-    uploaded_plate_img = request.FILES.get('plate_image')
-    if not uploaded_img or not uploaded_plate_img:
+  
+    if not uploaded_img:
         return Response(
             {"vehicleTypeError": "Please upload clear and valid vehicle and plate images or try again."},
             status=status.HTTP_400_BAD_REQUEST,
         )
     uploaded_img.seek(0)  # Reset file pointer before sending
     predicted_label, confidence = send_image_to_huggingface_vehicle_type(uploaded_img)
-    plate_number = send_image_to_huggingface_vehicle_plate(uploaded_plate_img)
-    print('plate number is ',plate_number)
+ 
     if predicted_label and predicted_label in supported_types:
         return Response(
             {
                 "predicted_label": predicted_label,
-                "plate_number": plate_number
+                
             },
             status=status.HTTP_200_OK,
         )
@@ -475,5 +473,28 @@ def predict_vehicle_type(request):
 
 
 
+@api_view(['POST'])
+def predict_plate_number(request):
+    uploaded_plate_img = request.FILES.get('plate_image')
+    if not uploaded_plate_img:
+        return Response(
+            {"error": "Please upload a clear and valid plate image."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
+    plate_number = send_image_to_huggingface_vehicle_plate(uploaded_plate_img)
+    if plate_number:
+        return Response(
+            {
+                "plate_number": plate_number
+            },
+            status=status.HTTP_200_OK,
+        )
+    else:
+        return Response(
+            {
+                "error": "Could not extract plate number. Please try again with a clearer image.",
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
