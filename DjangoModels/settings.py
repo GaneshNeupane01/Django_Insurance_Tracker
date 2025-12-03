@@ -171,7 +171,7 @@ DATABASES = {
 # If DATABASE_URL is set (Render/Postgres), override with Postgres config
 DATABASE_URL = os.getenv("DATABASE_URL")
 if DATABASE_URL:
-    DATABASES["default"] = dj_database_url.config(default=DATABASE_URL, conn_max_age=600, ssl_require=True)
+    DATABASES["default"] = dj_database_url.config(default=DATABASE_URL, conn_max_age=600, ssl_require=False)
 
 
 
