@@ -24,6 +24,12 @@ services:
     environment:
       - DEBUG=1
       - DATABASE_URL=postgres://myuser:mypassword@db:5432/mydb
+      - SECRET_KEY=tzGCemglPecJ0dMdx3vnKPVKIuvVHWCaXApLcllkUGc
+      - CRON_JOB_SECRET_KEY=xywWlDs6I4VVfViGiBwoDF9ytm8miGnFzVQT4Gt2zkw
+      - CLOUDINARY_CLOUD_NAME=daxlrnkcb
+      - CLOUDINARY_API_SECRET=yxKO2I4RQBD2jVppgVSxWzsjlsM
+      - CLOUDINARY_API_KEY=948349496971634
+
     depends_on:
       - db
 
